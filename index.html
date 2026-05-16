@@ -1,77 +1,23 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mulai Dulu — Anti-Procrastination</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QUEST LOG — Mulai Dulu</title>
 
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Google Fonts: Lora (display) + DM Sans (body) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
 
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            display: ['Lora', 'Georgia', 'serif'],
-            body: ['DM Sans', 'sans-serif'],
-          },
-          colors: {
-            cream: {
-              50:  '#fdf8f0',
-              100: '#faf0dc',
-              200: '#f5e0b8',
-            },
-            amber: {
-              warm: '#d97706',
-              deep: '#b45309',
-            },
-            terra: {
-              100: '#fde8d8',
-              200: '#f9c9a8',
-              400: '#e07040',
-              600: '#c05328',
-              800: '#7c2d12',
-            },
-            moss:  { 600: '#4a7c59' },
-            slate: { warm: '#4a4540' },
-          },
-          backgroundImage: {
-            'paper': "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")",
-          },
-          keyframes: {
-            'fade-up': {
-              '0%':   { opacity: '0', transform: 'translateY(16px)' },
-              '100%': { opacity: '1', transform: 'translateY(0)' },
-            },
-            'pop': {
-              '0%':   { transform: 'scale(0.92)', opacity: '0' },
-              '60%':  { transform: 'scale(1.03)' },
-              '100%': { transform: 'scale(1)',    opacity: '1' },
-            },
-            'pulse-ring': {
-              '0%':   { transform: 'scale(1)',    opacity: '0.8' },
-              '100%': { transform: 'scale(1.6)',  opacity: '0' },
-            },
-            'tick-down': {
-              '0%':   { strokeDashoffset: '0' },
-              '100%': { strokeDashoffset: '283' },
-            },
-            'shimmer': {
-              '0%':   { backgroundPosition: '-200% 0' },
-              '100%': { backgroundPosition: '200% 0' },
-            },
-          },
-          animation: {
-            'fade-up':    'fade-up 0.5s ease forwards',
-            'pop':        'pop 0.35s cubic-bezier(.4,0,.2,1) forwards',
-            'pulse-ring': 'pulse-ring 1.4s ease-out infinite',
-            'shimmer':    'shimmer 2.5s linear infinite',
+            pixel: ['"Press Start 2P"', 'monospace'],
+            game:  ['Rajdhani', 'sans-serif'],
+            mono:  ['"Share Tech Mono"', 'monospace'],
           },
         },
       },
@@ -79,432 +25,728 @@
   </script>
 
   <style>
-    /* ── Base ── */
+    :root {
+      --bg:     #03050f;
+      --panel:  #0b1530;
+      --border: #1a2d5a;
+      --cyan:   #00f5ff;
+      --gold:   #ffd700;
+      --red:    #ff3b3b;
+      --green:  #39ff14;
+      --purple: #bf5fff;
+    }
+
     *, *::before, *::after { box-sizing: border-box; }
+    html { background: var(--bg); }
 
     body {
-      font-family: 'DM Sans', sans-serif;
-      background-color: #fdf8f0;
+      font-family: 'Rajdhani', sans-serif;
+      background-color: var(--bg);
       background-image:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,245,255,.012) 2px, rgba(0,245,255,.012) 4px),
+        linear-gradient(rgba(0,245,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,.025) 1px, transparent 1px);
+      background-size: auto, 40px 40px, 40px 40px;
       min-height: 100vh;
+      color: #c8d8e8;
     }
 
-    /* ── Typography ── */
-    .font-display { font-family: 'Lora', Georgia, serif; }
+    /* Cursor */
+    * { cursor: default; }
+    button, select, input, a, label { cursor: pointer; }
 
-    /* ── View transitions ── */
+    /* Panel */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 4px 24px rgba(0,0,0,.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,245,255,.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    /* Corner accents */
+    .corner::before, .corner::after {
+      content: '';
+      position: absolute;
+      width: 10px; height: 10px;
+      border-color: var(--cyan);
+      border-style: solid;
+      opacity: .6;
+    }
+    .corner::before { top: 0; left: 0; border-width: 2px 0 0 2px; }
+    .corner::after  { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+    /* Views */
     .view { display: none; }
-    .view.active { display: block; animation: fade-up 0.45s ease forwards; }
+    .view.active { display: block; animation: slideIn .3s ease forwards; }
 
-    /* ── Nav tabs ── */
-    .nav-tab { transition: color .2s, border-color .2s; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(.85); }
+      60%  { transform: scale(1.04); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes floatUp {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to   { opacity: 0; transform: translateY(-70px) scale(1.5); }
+    }
+    @keyframes levelUp {
+      from { opacity: 0; transform: scale(.7) translateY(20px); }
+      60%  { transform: scale(1.08) translateY(-4px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    @keyframes pulseNeon {
+      0%,100% { box-shadow: 0 0 8px var(--cyan), 0 0 20px rgba(0,245,255,.3); }
+      50%      { box-shadow: 0 0 16px var(--cyan), 0 0 40px rgba(0,245,255,.5); }
+    }
+    @keyframes scanPulse {
+      0%,100% { opacity: .4; }
+      50% { opacity: 1; }
+    }
+
+    /* Nav tabs */
+    .nav-tab {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: .78rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #2a4060;
+      border-bottom: 2px solid transparent;
+      padding-bottom: 6px;
+      transition: color .2s, border-color .2s, text-shadow .2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
     .nav-tab.active {
-      color: #c05328;
-      border-bottom: 2px solid #c05328;
+      color: var(--cyan);
+      border-color: var(--cyan);
+      text-shadow: 0 0 8px var(--cyan);
+    }
+    .nav-tab:hover:not(.active) { color: #6090b0; }
+
+    /* Quest card */
+    .quest-card {
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, #0b1530, #0d1a38);
+      transition: border-color .2s, box-shadow .2s, transform .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .quest-card::after {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+    .quest-card.status-pending::after    { background: var(--gold);  box-shadow: 0 0 6px var(--gold); }
+    .quest-card.status-in_progress::after{ background: var(--cyan);  box-shadow: 0 0 6px var(--cyan); }
+    .quest-card.status-completed::after  { background: var(--green); box-shadow: 0 0 6px var(--green);}
+    .quest-card:hover:not(.status-completed) {
+      border-color: rgba(0,245,255,.25);
+      transform: translateX(3px);
     }
 
-    /* ── Task card ── */
-    .task-card {
-      transition: transform .2s, box-shadow .2s;
-    }
-    .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.07); }
-
-    /* ── Timer ring ── */
+    /* Timer ring */
     #timer-ring {
       stroke-dasharray: 283;
       stroke-dashoffset: 0;
       transition: stroke-dashoffset 1s linear;
-      transform-origin: center;
+      transform-origin: 50% 50%;
       transform: rotate(-90deg);
+      filter: drop-shadow(0 0 6px var(--cyan));
     }
 
-    /* ── Pulse ring behind start button ── */
-    .pulse-ring-el {
-      animation: pulse-ring 1.5s ease-out infinite;
+    /* Inputs */
+    .game-input {
+      background: rgba(0,0,0,.4);
+      border: 1px solid var(--border);
+      color: #c8d8e8;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: .95rem;
+      font-weight: 500;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .game-input:focus {
+      outline: none;
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 2px rgba(0,245,255,.12);
+    }
+    .game-input::placeholder { color: #1e3050; }
+    .game-input option { background: #0b1530; }
+
+    /* Buttons */
+    .btn-cyan {
+      background: linear-gradient(135deg, #004e5a, #002a33);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      transition: box-shadow .2s, transform .1s;
+      animation: pulseNeon 2.5s ease-in-out infinite;
+    }
+    .btn-cyan:hover  { box-shadow: 0 0 20px rgba(0,245,255,.5); }
+    .btn-cyan:active { transform: scale(.96); animation: none; }
+
+    .btn-red {
+      background: linear-gradient(135deg, #3a0000, #1a0000);
+      border: 1px solid var(--red);
+      color: #ff8888;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      transition: box-shadow .2s, transform .1s;
+    }
+    .btn-red:hover  { box-shadow: 0 0 12px rgba(255,59,59,.4); }
+    .btn-red:active { transform: scale(.96); }
+
+    .btn-green {
+      background: linear-gradient(135deg, #0a3000, #051500);
+      border: 1px solid var(--green);
+      color: var(--green);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      transition: box-shadow .2s, transform .1s;
+    }
+    .btn-green:hover { box-shadow: 0 0 12px rgba(57,255,20,.4); }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #3a2a00, #1a1200);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      transition: box-shadow .2s, transform .1s;
+    }
+    .btn-gold:hover  { box-shadow: 0 0 12px rgba(255,215,0,.4); }
+    .btn-gold:active { transform: scale(.96); }
+
+    /* Filter pills */
+    .filter-pill {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      color: #2a4060;
+      background: transparent;
+      padding: 3px 10px;
+      border-radius: 4px;
+      transition: all .2s;
+    }
+    .filter-pill.active, .filter-pill:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 6px rgba(0,245,255,.2);
     }
 
-    /* ── Shimmer skeleton ── */
-    .shimmer-bg {
-      background: linear-gradient(90deg, #f5e8d0 25%, #fdf3e3 50%, #f5e8d0 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.6s linear infinite;
+    /* Mood */
+    .mood-btn {
+      font-size: 1.5rem;
+      padding: 3px 7px;
+      border-radius: 6px;
+      border: 2px solid transparent;
+      transition: all .2s;
+    }
+    .mood-btn.selected {
+      border-color: var(--gold);
+      box-shadow: 0 0 8px rgba(255,215,0,.5);
+      background: rgba(255,215,0,.08);
+      transform: scale(1.2);
     }
 
-    /* ── Streak flame ── */
-    @keyframes flicker {
-      0%,100% { transform: scaleY(1) rotate(-1deg); }
-      50%      { transform: scaleY(1.08) rotate(1deg); }
-    }
-    .flame { display:inline-block; animation: flicker 1.2s ease-in-out infinite; transform-origin: bottom center; }
-
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #e0cbb0; border-radius: 99px; }
-
-    /* ── Modal backdrop ── */
-    .modal-backdrop {
-      backdrop-filter: blur(4px);
-      background: rgba(74,69,64,0.45);
+    /* XP bar */
+    .xp-fill {
+      background: linear-gradient(90deg, #39ff14, #00f5ff);
+      box-shadow: 0 0 8px rgba(57,255,20,.6);
+      transition: width 1s cubic-bezier(.4,0,.2,1);
     }
 
-    /* ── Checkbox custom ── */
-    .task-check:checked + label .check-box {
-      background: #4a7c59;
-      border-color: #4a7c59;
-    }
-    .task-check:checked + label .check-icon { display: block; }
-    .check-icon { display: none; }
-
-    /* ── Progress bar animated ── */
-    .progress-fill {
-      transition: width 0.8s cubic-bezier(.4,0,.2,1);
-    }
-
-    /* ── Toast ── */
+    /* Toast */
     #toast {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: .78rem;
+      letter-spacing: .04em;
       transition: opacity .3s, transform .3s;
       pointer-events: none;
+      border: 1px solid var(--cyan);
+      background: rgba(3,5,15,.96);
+      color: var(--cyan);
+      box-shadow: 0 0 16px rgba(0,245,255,.3);
     }
     #toast.show { opacity: 1 !important; transform: translateY(0) !important; }
+
+    /* Pixel divider */
+    .px-divider {
+      height: 1px;
+      background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 4px, transparent 4px, transparent 8px);
+    }
+
+    /* Blink cursor */
+    .cursor-blink::after {
+      content: '█';
+      animation: blink .8s step-end infinite;
+      color: var(--cyan);
+      font-size: .85em;
+    }
+
+    /* Modal */
+    .modal-bg {
+      background: rgba(3,5,15,.85);
+      backdrop-filter: blur(6px);
+    }
+
+    /* Chart bars */
+    .chart-bar {
+      background: linear-gradient(to top, #1a2d5a, #00b8c8);
+      box-shadow: 0 0 4px rgba(0,245,255,.3);
+      border-radius: 2px 2px 0 0;
+      min-height: 3px;
+      transition: height .8s cubic-bezier(.4,0,.2,1);
+    }
+    .chart-bar.today {
+      background: linear-gradient(to top, #c8a800, #ffd700);
+      box-shadow: 0 0 6px rgba(255,215,0,.5);
+    }
+
+    /* Float reward */
+    .float-reward {
+      position: fixed;
+      font-family: 'Press Start 2P', monospace;
+      font-size: .6rem;
+      pointer-events: none;
+      z-index: 200;
+      animation: floatUp 1s ease forwards;
+      text-shadow: 0 0 8px currentColor;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #1a2d5a; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
   </style>
 </head>
 
-<body class="text-slate-800">
+<body>
 
-  <!-- ════════════════════════════════════════
-       HEADER
-  ════════════════════════════════════════ -->
-  <header class="sticky top-0 z-30 bg-cream-50/90 backdrop-blur border-b border-amber-100 px-4 py-3 flex items-center justify-between max-w-2xl mx-auto">
-    <div class="flex items-center gap-2">
-      <span class="flame text-xl">🔥</span>
-      <span class="font-display font-semibold text-terra-800 text-lg tracking-tight">Mulai Dulu</span>
+<!-- ════════════════════════════════════════
+     HEADER / HUD
+════════════════════════════════════════ -->
+<header class="sticky top-0 z-30 bg-opacity-95 backdrop-blur border-b border-[#1a2d5a]"
+  style="background:rgba(3,5,15,.95)">
+  <div class="max-w-2xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2.5 flex-shrink-0">
+      <!-- Inline sword icon (game-icons.net inspired) -->
+      <svg viewBox="0 0 32 32" class="w-7 h-7 flex-shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="27" width="6" height="3" rx="1" fill="#ff3b3b"/>
+        <rect x="6" y="22" width="3" height="8" rx="1" fill="#c0a060" transform="rotate(-45 6 22)"/>
+        <rect x="12" y="5" width="3" height="18" rx="1" fill="#c8d8e8" transform="rotate(-45 12 5)"/>
+        <rect x="22" y="2" width="5" height="5" rx="1" fill="#00f5ff" transform="rotate(-45 22 2)"/>
+        <rect x="13" y="17" width="10" height="3" rx="1" fill="#ffd700" transform="rotate(-45 13 17)"/>
+      </svg>
+      <div class="leading-none">
+        <div class="font-pixel text-[10px] leading-tight" style="color:var(--cyan);text-shadow:0 0 8px #00f5ff">QUEST LOG</div>
+        <div class="font-mono text-[9px] mt-0.5" style="color:#1a3050">MULAI DULU v1.0</div>
+      </div>
     </div>
 
-    <div class="flex items-center gap-3">
-      <!-- Streak badge -->
-      <div id="streak-badge" class="flex items-center gap-1 bg-terra-100 rounded-full px-3 py-1 text-sm font-medium text-terra-800 cursor-pointer" title="Streak harian Anda">
-        <span class="flame text-base">🔥</span>
-        <span id="streak-count">0</span>
-        <span class="text-xs text-terra-600">hari</span>
-      </div>
-      <!-- Shield badge -->
-      <div id="shield-badge" class="flex items-center gap-1 bg-blue-50 rounded-full px-3 py-1 text-sm font-medium text-blue-700 cursor-pointer" title="Streak shield tersisa">
-        🛡️ <span id="shield-count">2</span>
-      </div>
-    </div>
-  </header>
-
-  <!-- ════════════════════════════════════════
-       MAIN CONTAINER
-  ════════════════════════════════════════ -->
-  <main class="max-w-2xl mx-auto px-4 pb-24">
-
-    <!-- ── Welcome banner (shown once) ── -->
-    <div id="welcome-banner" class="hidden mt-6 p-5 rounded-2xl bg-gradient-to-br from-terra-100 to-cream-200 border border-terra-200 relative overflow-hidden animate-pop">
-      <div class="absolute top-0 right-0 w-32 h-32 bg-terra-200 rounded-full -translate-y-1/2 translate-x-1/2 opacity-40"></div>
-      <p class="font-display italic text-terra-800 text-lg leading-snug relative z-10">"Mulai adalah setengah dari segalanya."</p>
-      <p class="text-sm text-terra-600 mt-1 relative z-10">— Aristoteles</p>
-      <button id="close-welcome" class="absolute top-3 right-3 text-terra-400 hover:text-terra-700 text-lg">×</button>
-    </div>
-
-    <!-- ════ NAV TABS ════ -->
-    <nav class="flex gap-6 mt-6 border-b border-amber-100 pb-0">
-      <button data-view="view-tasks"     class="nav-tab active pb-2 text-sm font-medium text-slate-600">📋 Tugas</button>
-      <button data-view="view-focus"     class="nav-tab pb-2 text-sm font-medium text-slate-600">⏱ Fokus</button>
-      <button data-view="view-log"       class="nav-tab pb-2 text-sm font-medium text-slate-600">📓 Log Harian</button>
-      <button data-view="view-stats"     class="nav-tab pb-2 text-sm font-medium text-slate-600">📈 Statistik</button>
-    </nav>
-
-    <!-- ════════════════════════════════════════
-         VIEW 1 — TASKS
-    ════════════════════════════════════════ -->
-    <section id="view-tasks" class="view active mt-6">
-
-      <!-- Daily progress -->
-      <div class="mb-5 p-4 rounded-2xl bg-white/70 border border-amber-100 shadow-sm">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-sm font-medium text-slate-600">Progress hari ini</span>
-          <span id="daily-progress-text" class="text-xs text-terra-600 font-semibold">0 / 0 dimulai</span>
-        </div>
-        <div class="h-2 rounded-full bg-cream-200 overflow-hidden">
-          <div id="daily-progress-bar" class="progress-fill h-full rounded-full bg-gradient-to-r from-terra-400 to-amber-warm" style="width:0%"></div>
-        </div>
-      </div>
-
-      <!-- Add task input -->
-      <div class="flex gap-2 mb-5">
-        <input
-          id="new-task-input"
-          type="text"
-          placeholder="Tugas baru… (Enter untuk tambah)"
-          class="flex-1 px-4 py-2.5 rounded-xl border border-amber-100 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-terra-300 placeholder-slate-400"
-        />
-        <button id="add-task-btn" class="px-4 py-2.5 rounded-xl bg-terra-600 text-white text-sm font-medium hover:bg-terra-800 transition-colors active:scale-95">
-          + Tambah
-        </button>
-      </div>
-
-      <!-- Filter pills -->
-      <div class="flex gap-2 mb-4 text-xs font-medium">
-        <button data-filter="all"       class="task-filter active-filter px-3 py-1 rounded-full bg-terra-600 text-white transition-all">Semua</button>
-        <button data-filter="pending"   class="task-filter px-3 py-1 rounded-full bg-cream-100 text-slate-600 hover:bg-terra-100 transition-all">Tertunda</button>
-        <button data-filter="in_progress" class="task-filter px-3 py-1 rounded-full bg-cream-100 text-slate-600 hover:bg-terra-100 transition-all">Sedang Jalan</button>
-        <button data-filter="completed" class="task-filter px-3 py-1 rounded-full bg-cream-100 text-slate-600 hover:bg-terra-100 transition-all">Selesai</button>
-      </div>
-
-      <!-- Task list -->
-      <div id="task-list" class="flex flex-col gap-3">
-        <!-- Populated by JS -->
-      </div>
-
-      <p id="empty-tasks" class="hidden text-center text-sm text-slate-400 mt-10 font-display italic">
-        Belum ada tugas. Tambahkan satu di atas!
-      </p>
-    </section>
-
-    <!-- ════════════════════════════════════════
-         VIEW 2 — FOCUS TIMER
-    ════════════════════════════════════════ -->
-    <section id="view-focus" class="view mt-6">
-
-      <!-- Active task selector -->
-      <div class="mb-5 p-4 rounded-2xl bg-white/70 border border-amber-100 shadow-sm">
-        <label class="text-xs font-medium text-slate-500 block mb-1">Sedang mengerjakan:</label>
-        <select id="focus-task-select" class="w-full bg-transparent text-sm font-medium text-terra-800 focus:outline-none cursor-pointer">
-          <option value="">— Pilih tugas —</option>
-        </select>
-      </div>
-
-      <!-- Timer circle -->
-      <div class="flex flex-col items-center mt-4 mb-8 relative">
-        <!-- Pulse ring decoration -->
-        <div id="pulse-rings" class="hidden absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div class="pulse-ring-el absolute w-52 h-52 rounded-full border-2 border-terra-300 opacity-0"></div>
-          <div class="pulse-ring-el absolute w-60 h-60 rounded-full border border-terra-200 opacity-0" style="animation-delay:.4s"></div>
-        </div>
-
-        <div class="relative w-48 h-48">
-          <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="none" stroke="#f5e0b8" stroke-width="5"/>
-            <circle id="timer-ring" cx="50" cy="50" r="45" fill="none" stroke="#c05328" stroke-width="5"
-              stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="0"/>
-          </svg>
-          <div class="absolute inset-0 flex flex-col items-center justify-center">
-            <span id="timer-display" class="font-display text-4xl font-semibold text-terra-800 tabular-nums">5:00</span>
-            <span id="timer-label"   class="text-xs text-slate-500 mt-1">menit tersisa</span>
-          </div>
-        </div>
-
-        <!-- Start / Stop buttons -->
-        <div class="flex gap-3 mt-6">
-          <button id="start-timer-btn"
-            class="px-8 py-3 rounded-2xl bg-terra-600 text-white font-semibold text-sm hover:bg-terra-800 active:scale-95 transition-all shadow-md shadow-terra-200">
-            🚀 Mulai 5 Menit
-          </button>
-          <button id="stop-timer-btn" class="hidden px-5 py-3 rounded-2xl bg-cream-200 text-terra-800 font-medium text-sm hover:bg-terra-100 active:scale-95 transition-all">
-            ✋ Berhenti
-          </button>
-        </div>
-
-        <p id="focus-motivation" class="mt-4 text-sm text-slate-500 font-display italic text-center max-w-xs">
-          Pilih tugas lalu tekan Mulai — tidak perlu selesai, cukup mulai.
-        </p>
-      </div>
-
-      <!-- Start history for today -->
-      <div class="p-4 rounded-2xl bg-white/70 border border-amber-100 shadow-sm">
-        <p class="text-xs font-medium text-slate-500 mb-3">Sesi dimulai hari ini</p>
-        <div id="session-history" class="flex flex-wrap gap-2">
-          <!-- Populated by JS -->
-          <span class="text-xs text-slate-400 italic">Belum ada sesi</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ════════════════════════════════════════
-         VIEW 3 — DAILY LOG
-    ════════════════════════════════════════ -->
-    <section id="view-log" class="view mt-6">
-
-      <div class="flex items-center justify-between mb-5">
-        <h2 class="font-display text-lg text-terra-800">Refleksi Hari Ini</h2>
-        <span id="log-date" class="text-xs text-slate-400"></span>
-      </div>
-
-      <!-- Stats row -->
-      <div class="grid grid-cols-3 gap-3 mb-5">
-        <div class="p-3 rounded-xl bg-white/70 border border-amber-100 text-center">
-          <p id="log-total-starts" class="font-display text-2xl font-semibold text-terra-600">0</p>
-          <p class="text-xs text-slate-500 mt-0.5">Kali dimulai</p>
-        </div>
-        <div class="p-3 rounded-xl bg-white/70 border border-amber-100 text-center">
-          <p id="log-completed" class="font-display text-2xl font-semibold text-moss-600">0</p>
-          <p class="text-xs text-slate-500 mt-0.5">Tugas selesai</p>
-        </div>
-        <div class="p-3 rounded-xl bg-white/70 border border-amber-100 text-center">
-          <p id="log-shield-used" class="font-display text-2xl font-semibold text-blue-500">—</p>
-          <p class="text-xs text-slate-500 mt-0.5">Shield pakai</p>
-        </div>
-      </div>
-
-      <!-- Reflection form -->
-      <div class="flex flex-col gap-4">
-        <!-- Mood -->
-        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
-          <label class="text-sm font-medium text-slate-700 block mb-2">Bagaimana perasaanmu hari ini?</label>
-          <div id="mood-selector" class="flex gap-3 text-2xl">
-            <button data-mood="1" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Sangat buruk">😩</button>
-            <button data-mood="2" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Buruk">😕</button>
-            <button data-mood="3" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Biasa">😐</button>
-            <button data-mood="4" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Baik">🙂</button>
-            <button data-mood="5" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Sangat baik">😄</button>
-          </div>
-        </div>
-
-        <!-- What went well -->
-        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
-          <label for="reflection-good" class="text-sm font-medium text-slate-700 block mb-2">Apa yang berjalan baik hari ini?</label>
-          <textarea id="reflection-good" rows="3"
-            placeholder="Tulis minimal satu hal positif…"
-            class="w-full text-sm bg-cream-50 rounded-xl p-3 border border-amber-100 resize-none focus:outline-none focus:ring-2 focus:ring-terra-300 placeholder-slate-300"></textarea>
-        </div>
-
-        <!-- Obstacle -->
-        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
-          <label for="reflection-obstacle" class="text-sm font-medium text-slate-700 block mb-2">Apa yang terasa sulit?</label>
-          <textarea id="reflection-obstacle" rows="3"
-            placeholder="Hambatan hari ini…"
-            class="w-full text-sm bg-cream-50 rounded-xl p-3 border border-amber-100 resize-none focus:outline-none focus:ring-2 focus:ring-terra-300 placeholder-slate-300"></textarea>
-        </div>
-
-        <!-- Tomorrow intention -->
-        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
-          <label for="reflection-tomorrow" class="text-sm font-medium text-slate-700 block mb-2">Satu hal yang akan kamu <em>mulai</em> besok?</label>
-          <textarea id="reflection-tomorrow" rows="2"
-            placeholder="Niatkan satu langkah kecil…"
-            class="w-full text-sm bg-cream-50 rounded-xl p-3 border border-amber-100 resize-none focus:outline-none focus:ring-2 focus:ring-terra-300 placeholder-slate-300"></textarea>
-        </div>
-
-        <button id="save-reflection-btn"
-          class="w-full py-3 rounded-2xl bg-terra-600 text-white font-semibold text-sm hover:bg-terra-800 active:scale-[0.98] transition-all shadow-sm">
-          💾 Simpan Refleksi
-        </button>
-      </div>
-    </section>
-
-    <!-- ════════════════════════════════════════
-         VIEW 4 — STATISTICS
-    ════════════════════════════════════════ -->
-    <section id="view-stats" class="view mt-6">
-
-      <!-- Streak card -->
-      <div class="p-5 rounded-2xl bg-gradient-to-br from-terra-100 to-cream-200 border border-terra-200 mb-5 flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium text-terra-600 uppercase tracking-wider mb-1">Streak Aktif</p>
-          <p class="font-display text-4xl font-semibold text-terra-800"><span id="stats-streak">0</span> <span class="text-2xl">🔥</span></p>
-          <p class="text-xs text-terra-600 mt-1">Terakhir aktif: <span id="stats-last-active">—</span></p>
-        </div>
-        <div class="text-right">
-          <p class="text-xs font-medium text-blue-600 uppercase tracking-wider mb-1">Shields</p>
-          <p class="font-display text-3xl font-semibold text-blue-700"><span id="stats-shields">2</span> 🛡️</p>
-        </div>
-      </div>
-
-      <!-- Weekly starts chart (simple bar) -->
-      <div class="p-4 rounded-2xl bg-white/70 border border-amber-100 mb-5">
-        <p class="text-xs font-medium text-slate-500 mb-3">Jumlah "Mulai" per hari (7 hari terakhir)</p>
-        <div id="weekly-chart" class="flex items-end gap-2 h-24">
-          <!-- Populated by JS -->
-        </div>
-        <div id="weekly-labels" class="flex gap-2 mt-1">
-          <!-- Day labels -->
-        </div>
-      </div>
-
-      <!-- All-time stats -->
-      <div class="grid grid-cols-2 gap-3 mb-5">
-        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
-          <p class="text-xs text-slate-500 mb-1">Total "Mulai" (semua waktu)</p>
-          <p id="stats-total-starts" class="font-display text-3xl font-semibold text-terra-600">0</p>
-        </div>
-        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
-          <p class="text-xs text-slate-500 mb-1">Total tugas selesai</p>
-          <p id="stats-total-completed" class="font-display text-3xl font-semibold text-moss-600">0</p>
-        </div>
-      </div>
-
-      <!-- Recent logs -->
-      <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
-        <p class="text-xs font-medium text-slate-500 mb-3">Log 7 Hari Terakhir</p>
-        <div id="recent-logs-list" class="flex flex-col gap-2">
-          <span class="text-xs text-slate-400 italic">Belum ada log</span>
-        </div>
-      </div>
-
-      <!-- Reset button -->
-      <button id="reset-all-btn" class="mt-6 w-full py-2.5 rounded-xl border border-red-200 text-red-400 text-sm hover:bg-red-50 transition-colors">
-        🗑 Reset Semua Data
+    <!-- HUD Badges -->
+    <div class="flex items-center gap-1.5">
+      <!-- Streak (fire) -->
+      <button id="streak-badge"
+        class="flex items-center gap-1 px-2 py-1.5 rounded panel corner border-[#5a4400] hover:border-[#ffd700] transition-all">
+        <!-- Flame SVG (game-style) -->
+        <svg viewBox="0 0 24 24" class="w-4 h-4" style="fill:var(--gold);filter:drop-shadow(0 0 4px #ffd700)">
+          <path d="M12 2s-5 5.5-5 10a5 5 0 0010 0C17 7.5 12 2 12 2zm0 14c-1.1 0-2-.9-2-2 0-1.5 2-4.5 2-4.5s2 3 2 4.5c0 1.1-.9 2-2 2z"/>
+        </svg>
+        <span class="font-pixel text-[10px]" id="streak-count" style="color:var(--gold);text-shadow:0 0 6px #ffd700">0</span>
+        <span class="font-mono text-[9px]" style="color:#5a4400">STK</span>
       </button>
-    </section>
 
-  </main>
+      <!-- Shield -->
+      <button id="shield-badge"
+        class="flex items-center gap-1 px-2 py-1.5 rounded panel border-[#004e5a] hover:border-[#00f5ff] transition-all">
+        <svg viewBox="0 0 24 24" class="w-4 h-4" style="fill:var(--cyan);filter:drop-shadow(0 0 4px #00f5ff)">
+          <path d="M12 2L4 5v6c0 5.5 3.5 10.5 8 11.35C16.5 21.5 20 16.5 20 11V5l-8-3z"/>
+        </svg>
+        <span class="font-pixel text-[10px]" id="shield-count" style="color:var(--cyan);text-shadow:0 0 6px #00f5ff">2</span>
+      </button>
 
-  <!-- ════════════════════════════════════════
-       BOTTOM NAV (mobile)
-  ════════════════════════════════════════ -->
-  <!-- already using top nav tabs; bottom padding covers mobile nav -->
-
-  <!-- ════════════════════════════════════════
-       TOAST NOTIFICATION
-  ════════════════════════════════════════ -->
-  <div id="toast"
-    class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-2 opacity-0 z-50
-           px-5 py-3 rounded-2xl bg-slate-800 text-white text-sm font-medium shadow-xl max-w-xs text-center">
-  </div>
-
-  <!-- ════════════════════════════════════════
-       CONFIRM MODAL
-  ════════════════════════════════════════ -->
-  <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4">
-    <div class="bg-cream-50 rounded-2xl p-6 max-w-xs w-full shadow-2xl animate-pop">
-      <p id="confirm-text" class="font-display text-terra-800 text-center mb-4">Yakin?</p>
-      <div class="flex gap-3">
-        <button id="confirm-no"  class="flex-1 py-2.5 rounded-xl bg-cream-100 text-slate-700 text-sm font-medium hover:bg-cream-200 transition-colors">Batal</button>
-        <button id="confirm-yes" class="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors">Ya, lanjutkan</button>
+      <!-- XP -->
+      <div class="hidden sm:flex items-center gap-1 px-2 py-1.5 rounded panel border-[#0a3000]">
+        <svg viewBox="0 0 24 24" class="w-4 h-4" style="fill:var(--green);filter:drop-shadow(0 0 4px #39ff14)">
+          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+        </svg>
+        <span class="font-mono text-[10px]" id="xp-count" style="color:var(--green);text-shadow:0 0 6px #39ff14">0 XP</span>
       </div>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════════
-       STREAK MODAL (detail)
-  ════════════════════════════════════════ -->
-  <div id="streak-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4">
-    <div class="bg-cream-50 rounded-2xl p-6 max-w-xs w-full shadow-2xl animate-pop">
-      <h3 class="font-display text-xl text-terra-800 text-center mb-1">🔥 Streak & Shield</h3>
-      <p class="text-xs text-slate-500 text-center mb-4">Detail konsistensi harianmu</p>
+  <!-- XP progress bar -->
+  <div class="max-w-2xl mx-auto px-3 pb-2">
+    <div class="flex items-center gap-2">
+      <span class="font-mono text-[9px]" style="color:#1a3050">LV<span id="hud-level">1</span></span>
+      <div class="flex-1 h-1 rounded-full overflow-hidden" style="background:#060d1f">
+        <div id="xp-bar" class="xp-fill h-full rounded-full" style="width:0%"></div>
+      </div>
+      <span class="font-mono text-[9px]" style="color:#1a3050"><span id="xp-to-next">100</span>xp</span>
+    </div>
+  </div>
+</header>
 
-      <div class="flex justify-around mb-4">
-        <div class="text-center">
-          <p class="font-display text-4xl text-terra-600"><span id="modal-streak">0</span></p>
-          <p class="text-xs text-slate-500 mt-1">Hari berturut-turut</p>
-        </div>
-        <div class="text-center">
-          <p class="font-display text-4xl text-blue-600"><span id="modal-shields">2</span></p>
-          <p class="text-xs text-slate-500 mt-1">Shield tersisa</p>
+<!-- ════════════════════════════════════════
+     MAIN
+════════════════════════════════════════ -->
+<main class="max-w-2xl mx-auto px-3 pb-12">
+
+  <!-- Welcome -->
+  <div id="welcome-banner" class="hidden mt-4 p-4 panel corner rounded-lg" style="border-color:#5a4400;animation:popIn .4s ease forwards">
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ffd700] to-transparent opacity-60"></div>
+    <p class="font-pixel text-[10px] mb-2" style="color:var(--gold);text-shadow:0 0 6px #ffd700">[ NEW GAME + ]</p>
+    <p class="font-game text-sm" style="color:#8ab0c8">Selamat datang, Pejuang! Setiap quest dimulai dengan satu langkah. Tekan <span style="color:var(--cyan)">[ START QUEST ]</span> sekali sehari untuk menjaga streak-mu.</p>
+    <button id="close-welcome" class="absolute top-2 right-3 text-lg transition-colors" style="color:#1a3050">×</button>
+  </div>
+
+  <!-- NAV TABS -->
+  <nav class="flex gap-4 mt-4 border-b overflow-x-auto" style="border-color:#1a2d5a;scrollbar-width:none">
+    <button data-view="view-tasks"  class="nav-tab active flex-shrink-0">
+      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor"><path d="M3 5h2V3H3v2zm0 4h2V7H3v2zm0 4h2v-2H3v2zm4-8v2h14V5H7zm0 4v2h14V9H7zm0 4v2h14v-2H7z"/></svg>
+      Quest Log
+    </button>
+    <button data-view="view-focus"  class="nav-tab flex-shrink-0">
+      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+      Battle Mode
+    </button>
+    <button data-view="view-log"    class="nav-tab flex-shrink-0">
+      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+      Daily Log
+    </button>
+    <button data-view="view-stats"  class="nav-tab flex-shrink-0">
+      <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-5h2v5zm4 0h-2v-8h2v8zm4 0h-2v-3h2v3z"/></svg>
+      Stats
+    </button>
+  </nav>
+
+  <!-- ═══ VIEW 1: QUEST LOG ═══ -->
+  <section id="view-tasks" class="view active mt-4">
+
+    <!-- Daily progress -->
+    <div class="panel corner rounded-lg p-3 mb-3">
+      <div class="flex justify-between mb-1.5">
+        <span class="font-mono text-[10px]" style="color:#2a4060">DAILY MISSION</span>
+        <span id="daily-progress-text" class="font-mono text-[10px]" style="color:#2a6070">0 starts · 0 done</span>
+      </div>
+      <div class="h-2 rounded overflow-hidden" style="background:#060d1f">
+        <div id="daily-progress-bar" class="xp-fill h-full rounded" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Add quest -->
+    <div class="flex gap-2 mb-3">
+      <div class="flex-1 flex items-center panel rounded-lg px-3 gap-2">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 flex-shrink-0" style="fill:#1a3050"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+        <input id="new-task-input" type="text" placeholder="Add new quest... [Enter]"
+          class="game-input flex-1 bg-transparent border-0 py-2.5 text-sm focus:ring-0"/>
+      </div>
+      <button id="add-task-btn" class="btn-cyan px-4 py-2.5 rounded-lg text-sm flex items-center gap-1.5">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        ADD
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex gap-1.5 mb-3 flex-wrap">
+      <button data-filter="all"          class="filter-pill active">ALL</button>
+      <button data-filter="pending"      class="filter-pill">⬛ PENDING</button>
+      <button data-filter="in_progress"  class="filter-pill">⚡ ACTIVE</button>
+      <button data-filter="completed"    class="filter-pill">✅ DONE</button>
+    </div>
+
+    <div id="task-list" class="flex flex-col gap-2"></div>
+    <p id="empty-tasks" class="hidden text-center font-mono text-[10px] mt-12 cursor-blink" style="color:#1a3050">NO QUESTS FOUND</p>
+  </section>
+
+  <!-- ═══ VIEW 2: BATTLE MODE ═══ -->
+  <section id="view-focus" class="view mt-4">
+
+    <!-- Target selector -->
+    <div class="panel corner rounded-lg p-3 mb-3">
+      <label class="font-mono text-[10px] block mb-2" style="color:#2a4060">SELECT TARGET QUEST</label>
+      <select id="focus-task-select" class="game-input w-full py-2.5 px-3 rounded-lg text-sm">
+        <option value="">[ — Choose quest — ]</option>
+      </select>
+    </div>
+
+    <!-- Timer arena -->
+    <div class="panel corner rounded-xl p-5 mb-3 flex flex-col items-center relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-[#00f5ff08] to-transparent pointer-events-none"></div>
+
+      <p class="font-pixel text-[9px] mb-4 z-10" style="color:#1a4050">[ BATTLE TIMER ]</p>
+
+      <!-- Ring -->
+      <div class="relative w-40 h-40 z-10 mb-5">
+        <svg class="w-full h-full" viewBox="0 0 100 100">
+          <!-- Track -->
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#0b1530" stroke-width="7"/>
+          <circle cx="50" cy="50" r="45" fill="none" stroke="#1a2d5a" stroke-width="7"
+            stroke-dasharray="283" stroke-dashoffset="0"/>
+          <!-- Progress -->
+          <circle id="timer-ring" cx="50" cy="50" r="45" fill="none" stroke="#00f5ff"
+            stroke-width="7" stroke-linecap="round"
+            stroke-dasharray="283" stroke-dashoffset="0"
+            style="transform:rotate(-90deg);transform-origin:50% 50%"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span id="timer-display" class="font-pixel text-2xl tabular-nums" style="color:var(--cyan);text-shadow:0 0 12px #00f5ff">5:00</span>
+          <span id="timer-label" class="font-mono text-[9px] mt-1" style="color:#1a4050">READY</span>
         </div>
       </div>
 
-      <p class="text-xs text-slate-500 text-center mb-4">
-        Shield melindungi streak-mu saat kamu melewatkan satu hari.
-        Streak bertambah setiap hari kamu menekan "Mulai 5 Menit" minimal sekali.
+      <!-- Buttons -->
+      <div class="flex gap-3 z-10">
+        <button id="start-timer-btn"
+          class="btn-cyan px-6 py-3 rounded-lg font-pixel text-[10px] flex items-center gap-2">
+          <!-- Play triangle -->
+          <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current"><path d="M8 5v14l11-7z"/></svg>
+          START QUEST
+        </button>
+        <button id="stop-timer-btn" class="hidden btn-red px-5 py-3 rounded-lg font-pixel text-[10px] flex items-center gap-2">
+          <!-- Stop square -->
+          <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+          RETREAT
+        </button>
+      </div>
+
+      <p id="focus-motivation" class="mt-4 font-mono text-[10px] text-center max-w-xs z-10 leading-loose" style="color:#1a4050">
+        Select quest then press START.<br/>No need to finish — just begin.
       </p>
-      <button id="close-streak-modal" class="w-full py-2.5 rounded-xl bg-terra-600 text-white text-sm font-medium">Tutup</button>
+    </div>
+
+    <!-- Session log -->
+    <div class="panel corner rounded-lg p-3">
+      <p class="font-mono text-[10px] mb-3" style="color:#2a4060">TODAY'S BATTLE LOG</p>
+      <div id="session-history" class="flex flex-wrap gap-1.5">
+        <span class="font-mono text-[10px]" style="color:#1a3050">No sessions yet...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ VIEW 3: DAILY LOG ═══ -->
+  <section id="view-log" class="view mt-4">
+
+    <div class="flex items-center justify-between mb-4">
+      <p class="font-pixel text-[10px]" style="color:var(--gold);text-shadow:0 0 6px #ffd700">[ DAILY DEBRIEF ]</p>
+      <span id="log-date" class="font-mono text-[10px]" style="color:#1a3050"></span>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-3 gap-2 mb-4">
+      <div class="panel corner rounded-lg p-3 text-center">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-1.5" style="fill:var(--cyan);filter:drop-shadow(0 0 4px #00f5ff)"><path d="M8 5v14l11-7z"/></svg>
+        <p id="log-total-starts" class="font-pixel text-lg" style="color:var(--cyan);text-shadow:0 0 8px #00f5ff">0</p>
+        <p class="font-mono text-[9px] mt-1" style="color:#1a3050">STARTS</p>
+      </div>
+      <div class="panel corner rounded-lg p-3 text-center">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-1.5" style="fill:var(--green);filter:drop-shadow(0 0 4px #39ff14)"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        <p id="log-completed" class="font-pixel text-lg" style="color:var(--green);text-shadow:0 0 8px #39ff14">0</p>
+        <p class="font-mono text-[9px] mt-1" style="color:#1a3050">CLEARED</p>
+      </div>
+      <div class="panel corner rounded-lg p-3 text-center">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-1.5" style="fill:var(--cyan);opacity:.7"><path d="M12 2L4 5v6c0 5.5 3.5 10.5 8 11.35C16.5 21.5 20 16.5 20 11V5l-8-3z"/></svg>
+        <p id="log-shield-used" class="font-pixel text-sm" style="color:#004e5a">—</p>
+        <p class="font-mono text-[9px] mt-1" style="color:#1a3050">SHIELD</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <!-- Mood -->
+      <div class="panel corner rounded-lg p-4">
+        <p class="font-mono text-[10px] mb-3" style="color:#2a4060">[ HP STATUS — MOOD ]</p>
+        <div id="mood-selector" class="flex gap-3">
+          <button data-mood="1" class="mood-btn">😩</button>
+          <button data-mood="2" class="mood-btn">😕</button>
+          <button data-mood="3" class="mood-btn">😐</button>
+          <button data-mood="4" class="mood-btn">🙂</button>
+          <button data-mood="5" class="mood-btn">😄</button>
+        </div>
+      </div>
+
+      <div class="panel corner rounded-lg p-4">
+        <label for="reflection-good" class="font-mono text-[10px] block mb-2" style="color:#2a4060">[ VICTORY REPORT ]</label>
+        <textarea id="reflection-good" rows="2"
+          placeholder="Apa yang berhasil hari ini..."
+          class="game-input w-full rounded-lg p-3 text-sm resize-none border"></textarea>
+      </div>
+
+      <div class="panel corner rounded-lg p-4">
+        <label for="reflection-obstacle" class="font-mono text-[10px] block mb-2" style="color:#2a4060">[ DEBUFF LOG ]</label>
+        <textarea id="reflection-obstacle" rows="2"
+          placeholder="Hambatan yang muncul..."
+          class="game-input w-full rounded-lg p-3 text-sm resize-none border"></textarea>
+      </div>
+
+      <div class="panel corner rounded-lg p-4">
+        <label for="reflection-tomorrow" class="font-mono text-[10px] block mb-2" style="color:#2a4060">[ NEXT QUEST PREP ]</label>
+        <textarea id="reflection-tomorrow" rows="2"
+          placeholder="Satu hal yang akan kamu mulai besok..."
+          class="game-input w-full rounded-lg p-3 text-sm resize-none border"></textarea>
+      </div>
+
+      <button id="save-reflection-btn" class="btn-gold w-full py-3 rounded-lg font-pixel text-[10px] flex items-center justify-center gap-2">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
+        SAVE LOG
+      </button>
+    </div>
+  </section>
+
+  <!-- ═══ VIEW 4: STATS ═══ -->
+  <section id="view-stats" class="view mt-4">
+
+    <!-- Player card -->
+    <div class="panel corner rounded-xl p-4 mb-3 relative overflow-hidden" style="border-color:#5a4400">
+      <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ffd700] to-transparent"></div>
+      <div class="flex items-center gap-4">
+        <!-- Avatar -->
+        <div class="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0" style="background:#0a1020;border:1px solid #5a4400;box-shadow:0 0 12px rgba(255,215,0,.15)">
+          <svg viewBox="0 0 24 24" class="w-9 h-9" style="fill:var(--gold);filter:drop-shadow(0 0 4px #ffd700)">
+            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8V21h19.2v-1.8c0-3.2-6.4-4.8-9.6-4.8z"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-pixel text-[11px] mb-1" style="color:var(--gold);text-shadow:0 0 6px #ffd700">ADVENTURER</p>
+          <div class="flex items-center gap-2 mb-2">
+            <span class="font-mono text-[10px]" style="color:#2a4060">LVL</span>
+            <span id="stats-level" class="font-pixel text-sm" style="color:var(--cyan);text-shadow:0 0 8px #00f5ff">1</span>
+            <span class="font-mono text-[10px]" style="color:#2a4060">·</span>
+            <span class="font-pixel text-[10px]" style="color:var(--gold)"><span id="stats-streak">0</span>🔥STK</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="font-mono text-[9px]" style="color:#1a3050">EXP</span>
+            <div class="flex-1 h-1.5 rounded overflow-hidden" style="background:#060d1f">
+              <div id="stats-xp-bar" class="xp-fill h-full rounded" style="width:0%"></div>
+            </div>
+            <span class="font-mono text-[9px]" style="color:#1a3050"><span id="stats-xp">0</span>/<span id="stats-xp-next">100</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Counters -->
+    <div class="grid grid-cols-2 gap-2 mb-3">
+      <div class="panel corner rounded-lg p-3 text-center">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-1.5" style="fill:var(--cyan);filter:drop-shadow(0 0 4px #00f5ff)"><path d="M8 5v14l11-7z"/></svg>
+        <p id="stats-total-starts" class="font-pixel text-2xl" style="color:var(--cyan);text-shadow:0 0 10px #00f5ff">0</p>
+        <p class="font-mono text-[9px] mt-1" style="color:#1a3050">TOTAL STARTS</p>
+      </div>
+      <div class="panel corner rounded-lg p-3 text-center">
+        <svg viewBox="0 0 24 24" class="w-5 h-5 mx-auto mb-1.5" style="fill:var(--green);filter:drop-shadow(0 0 4px #39ff14)"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+        <p id="stats-total-completed" class="font-pixel text-2xl" style="color:var(--green);text-shadow:0 0 10px #39ff14">0</p>
+        <p class="font-mono text-[9px] mt-1" style="color:#1a3050">QUESTS CLEARED</p>
+      </div>
+    </div>
+
+    <!-- Weekly chart -->
+    <div class="panel corner rounded-lg p-4 mb-3">
+      <p class="font-mono text-[10px] mb-3" style="color:#2a4060">7-DAY BATTLE HISTORY</p>
+      <div id="weekly-chart" class="flex items-end gap-1.5 h-20"></div>
+      <div id="weekly-labels" class="flex gap-1.5 mt-1.5"></div>
+    </div>
+
+    <!-- Recent logs -->
+    <div class="panel corner rounded-lg p-4 mb-4">
+      <p class="font-mono text-[10px] mb-3" style="color:#2a4060">RECENT SESSION LOGS</p>
+      <div id="recent-logs-list" class="flex flex-col gap-1">
+        <span class="font-mono text-[10px]" style="color:#1a3050">No logs found</span>
+      </div>
+    </div>
+
+    <button id="reset-all-btn" class="btn-red w-full py-2.5 rounded-lg font-pixel text-[10px] flex items-center justify-center gap-2">
+      <svg viewBox="0 0 24 24" class="w-4 h-4 fill-current"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+      RESET SAVE DATA
+    </button>
+  </section>
+
+</main>
+
+<!-- TOAST -->
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-2 opacity-0 z-50 px-5 py-3 rounded-lg max-w-xs text-center"></div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg px-4">
+  <div class="panel corner rounded-xl p-6 max-w-xs w-full" style="animation:popIn .35s ease forwards;border-color:#1a2d5a">
+    <p class="font-pixel text-[10px] text-center mb-1" style="color:var(--gold)">[ CONFIRM ACTION ]</p>
+    <div class="px-divider my-3"></div>
+    <p id="confirm-text" class="font-game text-sm text-center mb-4" style="color:#8ab0c8"></p>
+    <div class="flex gap-3">
+      <button id="confirm-no"  class="flex-1 py-2 rounded-lg font-game font-semibold text-sm transition-all" style="border:1px solid #1a2d5a;color:#4a6080">CANCEL</button>
+      <button id="confirm-yes" class="flex-1 py-2 rounded-lg btn-red font-pixel text-[10px]">CONFIRM</button>
     </div>
   </div>
+</div>
 
-  <!-- App script -->
-  <script src="app.js"></script>
+<!-- STREAK MODAL -->
+<div id="streak-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg px-4">
+  <div class="panel corner rounded-xl p-6 max-w-sm w-full" style="animation:popIn .35s ease forwards;border-color:#5a4400">
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ffd700] to-transparent"></div>
+    <p class="font-pixel text-[10px] text-center mb-4" style="color:var(--gold);text-shadow:0 0 8px #ffd700">[ PLAYER STATUS ]</p>
+    <div class="flex justify-around mb-4">
+      <div class="text-center">
+        <p class="font-pixel text-3xl" style="color:var(--gold);text-shadow:0 0 12px #ffd700"><span id="modal-streak">0</span></p>
+        <p class="font-mono text-[9px] mt-1" style="color:#2a4060">DAY STREAK</p>
+      </div>
+      <div class="w-px" style="background:#1a2d5a"></div>
+      <div class="text-center">
+        <p class="font-pixel text-3xl" style="color:var(--cyan);text-shadow:0 0 12px #00f5ff"><span id="modal-shields">2</span></p>
+        <p class="font-mono text-[9px] mt-1" style="color:#2a4060">SHIELDS</p>
+      </div>
+    </div>
+    <div class="px-divider my-3"></div>
+    <p class="font-game text-sm text-center mb-4" style="color:#6090b0">
+      Shield melindungi streak-mu saat skip 1 hari.<br/>
+      Streak +1 setiap hari ada minimal 1 start.
+    </p>
+    <button id="close-streak-modal" class="w-full py-2.5 rounded-lg btn-cyan font-pixel text-[10px]">CLOSE</button>
+  </div>
+</div>
+
+<!-- LEVEL UP MODAL -->
+<div id="levelup-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg px-4">
+  <div class="panel corner rounded-xl p-8 max-w-xs w-full text-center" style="animation:levelUp .6s ease forwards;border-color:var(--gold);box-shadow:0 0 40px rgba(255,215,0,.4)">
+    <div class="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#ffd700] to-transparent"></div>
+    <p class="font-pixel text-[10px] mb-2" style="color:var(--gold);text-shadow:0 0 10px #ffd700">[ LEVEL UP! ]</p>
+    <p class="font-pixel text-5xl my-5" id="levelup-num" style="color:var(--gold);text-shadow:0 0 20px #ffd700">2</p>
+    <p class="font-game text-sm mb-6" style="color:var(--cyan)">Kamu naik level! Terus mulai, terus tumbuh.</p>
+    <button id="close-levelup" class="btn-gold w-full py-2.5 rounded-lg font-pixel text-[10px]">CONTINUE ▶</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>

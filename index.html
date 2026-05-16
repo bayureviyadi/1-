@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mulai Dulu — Anti-Procrastination</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Lora (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Lora', 'Georgia', 'serif'],
+            body: ['DM Sans', 'sans-serif'],
+          },
+          colors: {
+            cream: {
+              50:  '#fdf8f0',
+              100: '#faf0dc',
+              200: '#f5e0b8',
+            },
+            amber: {
+              warm: '#d97706',
+              deep: '#b45309',
+            },
+            terra: {
+              100: '#fde8d8',
+              200: '#f9c9a8',
+              400: '#e07040',
+              600: '#c05328',
+              800: '#7c2d12',
+            },
+            moss:  { 600: '#4a7c59' },
+            slate: { warm: '#4a4540' },
+          },
+          backgroundImage: {
+            'paper': "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E\")",
+          },
+          keyframes: {
+            'fade-up': {
+              '0%':   { opacity: '0', transform: 'translateY(16px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            'pop': {
+              '0%':   { transform: 'scale(0.92)', opacity: '0' },
+              '60%':  { transform: 'scale(1.03)' },
+              '100%': { transform: 'scale(1)',    opacity: '1' },
+            },
+            'pulse-ring': {
+              '0%':   { transform: 'scale(1)',    opacity: '0.8' },
+              '100%': { transform: 'scale(1.6)',  opacity: '0' },
+            },
+            'tick-down': {
+              '0%':   { strokeDashoffset: '0' },
+              '100%': { strokeDashoffset: '283' },
+            },
+            'shimmer': {
+              '0%':   { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' },
+            },
+          },
+          animation: {
+            'fade-up':    'fade-up 0.5s ease forwards',
+            'pop':        'pop 0.35s cubic-bezier(.4,0,.2,1) forwards',
+            'pulse-ring': 'pulse-ring 1.4s ease-out infinite',
+            'shimmer':    'shimmer 2.5s linear infinite',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ── Base ── */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: #fdf8f0;
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      min-height: 100vh;
+    }
+
+    /* ── Typography ── */
+    .font-display { font-family: 'Lora', Georgia, serif; }
+
+    /* ── View transitions ── */
+    .view { display: none; }
+    .view.active { display: block; animation: fade-up 0.45s ease forwards; }
+
+    /* ── Nav tabs ── */
+    .nav-tab { transition: color .2s, border-color .2s; }
+    .nav-tab.active {
+      color: #c05328;
+      border-bottom: 2px solid #c05328;
+    }
+
+    /* ── Task card ── */
+    .task-card {
+      transition: transform .2s, box-shadow .2s;
+    }
+    .task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.07); }
+
+    /* ── Timer ring ── */
+    #timer-ring {
+      stroke-dasharray: 283;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear;
+      transform-origin: center;
+      transform: rotate(-90deg);
+    }
+
+    /* ── Pulse ring behind start button ── */
+    .pulse-ring-el {
+      animation: pulse-ring 1.5s ease-out infinite;
+    }
+
+    /* ── Shimmer skeleton ── */
+    .shimmer-bg {
+      background: linear-gradient(90deg, #f5e8d0 25%, #fdf3e3 50%, #f5e8d0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.6s linear infinite;
+    }
+
+    /* ── Streak flame ── */
+    @keyframes flicker {
+      0%,100% { transform: scaleY(1) rotate(-1deg); }
+      50%      { transform: scaleY(1.08) rotate(1deg); }
+    }
+    .flame { display:inline-block; animation: flicker 1.2s ease-in-out infinite; transform-origin: bottom center; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e0cbb0; border-radius: 99px; }
+
+    /* ── Modal backdrop ── */
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+      background: rgba(74,69,64,0.45);
+    }
+
+    /* ── Checkbox custom ── */
+    .task-check:checked + label .check-box {
+      background: #4a7c59;
+      border-color: #4a7c59;
+    }
+    .task-check:checked + label .check-icon { display: block; }
+    .check-icon { display: none; }
+
+    /* ── Progress bar animated ── */
+    .progress-fill {
+      transition: width 0.8s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Toast ── */
+    #toast {
+      transition: opacity .3s, transform .3s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1 !important; transform: translateY(0) !important; }
+  </style>
+</head>
+
+<body class="text-slate-800">
+
+  <!-- ════════════════════════════════════════
+       HEADER
+  ════════════════════════════════════════ -->
+  <header class="sticky top-0 z-30 bg-cream-50/90 backdrop-blur border-b border-amber-100 px-4 py-3 flex items-center justify-between max-w-2xl mx-auto">
+    <div class="flex items-center gap-2">
+      <span class="flame text-xl">🔥</span>
+      <span class="font-display font-semibold text-terra-800 text-lg tracking-tight">Mulai Dulu</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Streak badge -->
+      <div id="streak-badge" class="flex items-center gap-1 bg-terra-100 rounded-full px-3 py-1 text-sm font-medium text-terra-800 cursor-pointer" title="Streak harian Anda">
+        <span class="flame text-base">🔥</span>
+        <span id="streak-count">0</span>
+        <span class="text-xs text-terra-600">hari</span>
+      </div>
+      <!-- Shield badge -->
+      <div id="shield-badge" class="flex items-center gap-1 bg-blue-50 rounded-full px-3 py-1 text-sm font-medium text-blue-700 cursor-pointer" title="Streak shield tersisa">
+        🛡️ <span id="shield-count">2</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════
+       MAIN CONTAINER
+  ════════════════════════════════════════ -->
+  <main class="max-w-2xl mx-auto px-4 pb-24">
+
+    <!-- ── Welcome banner (shown once) ── -->
+    <div id="welcome-banner" class="hidden mt-6 p-5 rounded-2xl bg-gradient-to-br from-terra-100 to-cream-200 border border-terra-200 relative overflow-hidden animate-pop">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-terra-200 rounded-full -translate-y-1/2 translate-x-1/2 opacity-40"></div>
+      <p class="font-display italic text-terra-800 text-lg leading-snug relative z-10">"Mulai adalah setengah dari segalanya."</p>
+      <p class="text-sm text-terra-600 mt-1 relative z-10">— Aristoteles</p>
+      <button id="close-welcome" class="absolute top-3 right-3 text-terra-400 hover:text-terra-700 text-lg">×</button>
+    </div>
+
+    <!-- ════ NAV TABS ════ -->
+    <nav class="flex gap-6 mt-6 border-b border-amber-100 pb-0">
+      <button data-view="view-tasks"     class="nav-tab active pb-2 text-sm font-medium text-slate-600">📋 Tugas</button>
+      <button data-view="view-focus"     class="nav-tab pb-2 text-sm font-medium text-slate-600">⏱ Fokus</button>
+      <button data-view="view-log"       class="nav-tab pb-2 text-sm font-medium text-slate-600">📓 Log Harian</button>
+      <button data-view="view-stats"     class="nav-tab pb-2 text-sm font-medium text-slate-600">📈 Statistik</button>
+    </nav>
+
+    <!-- ════════════════════════════════════════
+         VIEW 1 — TASKS
+    ════════════════════════════════════════ -->
+    <section id="view-tasks" class="view active mt-6">
+
+      <!-- Daily progress -->
+      <div class="mb-5 p-4 rounded-2xl bg-white/70 border border-amber-100 shadow-sm">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm font-medium text-slate-600">Progress hari ini</span>
+          <span id="daily-progress-text" class="text-xs text-terra-600 font-semibold">0 / 0 dimulai</span>
+        </div>
+        <div class="h-2 rounded-full bg-cream-200 overflow-hidden">
+          <div id="daily-progress-bar" class="progress-fill h-full rounded-full bg-gradient-to-r from-terra-400 to-amber-warm" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Add task input -->
+      <div class="flex gap-2 mb-5">
+        <input
+          id="new-task-input"
+          type="text"
+          placeholder="Tugas baru… (Enter untuk tambah)"
+          class="flex-1 px-4 py-2.5 rounded-xl border border-amber-100 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-terra-300 placeholder-slate-400"
+        />
+        <button id="add-task-btn" class="px-4 py-2.5 rounded-xl bg-terra-600 text-white text-sm font-medium hover:bg-terra-800 transition-colors active:scale-95">
+          + Tambah
+        </button>
+      </div>
+
+      <!-- Filter pills -->
+      <div class="flex gap-2 mb-4 text-xs font-medium">
+        <button data-filter="all"       class="task-filter active-filter px-3 py-1 rounded-full bg-terra-600 text-white transition-all">Semua</button>
+        <button data-filter="pending"   class="task-filter px-3 py-1 rounded-full bg-cream-100 text-slate-600 hover:bg-terra-100 transition-all">Tertunda</button>
+        <button data-filter="in_progress" class="task-filter px-3 py-1 rounded-full bg-cream-100 text-slate-600 hover:bg-terra-100 transition-all">Sedang Jalan</button>
+        <button data-filter="completed" class="task-filter px-3 py-1 rounded-full bg-cream-100 text-slate-600 hover:bg-terra-100 transition-all">Selesai</button>
+      </div>
+
+      <!-- Task list -->
+      <div id="task-list" class="flex flex-col gap-3">
+        <!-- Populated by JS -->
+      </div>
+
+      <p id="empty-tasks" class="hidden text-center text-sm text-slate-400 mt-10 font-display italic">
+        Belum ada tugas. Tambahkan satu di atas!
+      </p>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         VIEW 2 — FOCUS TIMER
+    ════════════════════════════════════════ -->
+    <section id="view-focus" class="view mt-6">
+
+      <!-- Active task selector -->
+      <div class="mb-5 p-4 rounded-2xl bg-white/70 border border-amber-100 shadow-sm">
+        <label class="text-xs font-medium text-slate-500 block mb-1">Sedang mengerjakan:</label>
+        <select id="focus-task-select" class="w-full bg-transparent text-sm font-medium text-terra-800 focus:outline-none cursor-pointer">
+          <option value="">— Pilih tugas —</option>
+        </select>
+      </div>
+
+      <!-- Timer circle -->
+      <div class="flex flex-col items-center mt-4 mb-8 relative">
+        <!-- Pulse ring decoration -->
+        <div id="pulse-rings" class="hidden absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div class="pulse-ring-el absolute w-52 h-52 rounded-full border-2 border-terra-300 opacity-0"></div>
+          <div class="pulse-ring-el absolute w-60 h-60 rounded-full border border-terra-200 opacity-0" style="animation-delay:.4s"></div>
+        </div>
+
+        <div class="relative w-48 h-48">
+          <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#f5e0b8" stroke-width="5"/>
+            <circle id="timer-ring" cx="50" cy="50" r="45" fill="none" stroke="#c05328" stroke-width="5"
+              stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="0"/>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span id="timer-display" class="font-display text-4xl font-semibold text-terra-800 tabular-nums">5:00</span>
+            <span id="timer-label"   class="text-xs text-slate-500 mt-1">menit tersisa</span>
+          </div>
+        </div>
+
+        <!-- Start / Stop buttons -->
+        <div class="flex gap-3 mt-6">
+          <button id="start-timer-btn"
+            class="px-8 py-3 rounded-2xl bg-terra-600 text-white font-semibold text-sm hover:bg-terra-800 active:scale-95 transition-all shadow-md shadow-terra-200">
+            🚀 Mulai 5 Menit
+          </button>
+          <button id="stop-timer-btn" class="hidden px-5 py-3 rounded-2xl bg-cream-200 text-terra-800 font-medium text-sm hover:bg-terra-100 active:scale-95 transition-all">
+            ✋ Berhenti
+          </button>
+        </div>
+
+        <p id="focus-motivation" class="mt-4 text-sm text-slate-500 font-display italic text-center max-w-xs">
+          Pilih tugas lalu tekan Mulai — tidak perlu selesai, cukup mulai.
+        </p>
+      </div>
+
+      <!-- Start history for today -->
+      <div class="p-4 rounded-2xl bg-white/70 border border-amber-100 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 mb-3">Sesi dimulai hari ini</p>
+        <div id="session-history" class="flex flex-wrap gap-2">
+          <!-- Populated by JS -->
+          <span class="text-xs text-slate-400 italic">Belum ada sesi</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         VIEW 3 — DAILY LOG
+    ════════════════════════════════════════ -->
+    <section id="view-log" class="view mt-6">
+
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="font-display text-lg text-terra-800">Refleksi Hari Ini</h2>
+        <span id="log-date" class="text-xs text-slate-400"></span>
+      </div>
+
+      <!-- Stats row -->
+      <div class="grid grid-cols-3 gap-3 mb-5">
+        <div class="p-3 rounded-xl bg-white/70 border border-amber-100 text-center">
+          <p id="log-total-starts" class="font-display text-2xl font-semibold text-terra-600">0</p>
+          <p class="text-xs text-slate-500 mt-0.5">Kali dimulai</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white/70 border border-amber-100 text-center">
+          <p id="log-completed" class="font-display text-2xl font-semibold text-moss-600">0</p>
+          <p class="text-xs text-slate-500 mt-0.5">Tugas selesai</p>
+        </div>
+        <div class="p-3 rounded-xl bg-white/70 border border-amber-100 text-center">
+          <p id="log-shield-used" class="font-display text-2xl font-semibold text-blue-500">—</p>
+          <p class="text-xs text-slate-500 mt-0.5">Shield pakai</p>
+        </div>
+      </div>
+
+      <!-- Reflection form -->
+      <div class="flex flex-col gap-4">
+        <!-- Mood -->
+        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
+          <label class="text-sm font-medium text-slate-700 block mb-2">Bagaimana perasaanmu hari ini?</label>
+          <div id="mood-selector" class="flex gap-3 text-2xl">
+            <button data-mood="1" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Sangat buruk">😩</button>
+            <button data-mood="2" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Buruk">😕</button>
+            <button data-mood="3" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Biasa">😐</button>
+            <button data-mood="4" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Baik">🙂</button>
+            <button data-mood="5" class="mood-btn p-1 rounded-lg hover:bg-terra-100 transition-all" title="Sangat baik">😄</button>
+          </div>
+        </div>
+
+        <!-- What went well -->
+        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
+          <label for="reflection-good" class="text-sm font-medium text-slate-700 block mb-2">Apa yang berjalan baik hari ini?</label>
+          <textarea id="reflection-good" rows="3"
+            placeholder="Tulis minimal satu hal positif…"
+            class="w-full text-sm bg-cream-50 rounded-xl p-3 border border-amber-100 resize-none focus:outline-none focus:ring-2 focus:ring-terra-300 placeholder-slate-300"></textarea>
+        </div>
+
+        <!-- Obstacle -->
+        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
+          <label for="reflection-obstacle" class="text-sm font-medium text-slate-700 block mb-2">Apa yang terasa sulit?</label>
+          <textarea id="reflection-obstacle" rows="3"
+            placeholder="Hambatan hari ini…"
+            class="w-full text-sm bg-cream-50 rounded-xl p-3 border border-amber-100 resize-none focus:outline-none focus:ring-2 focus:ring-terra-300 placeholder-slate-300"></textarea>
+        </div>
+
+        <!-- Tomorrow intention -->
+        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
+          <label for="reflection-tomorrow" class="text-sm font-medium text-slate-700 block mb-2">Satu hal yang akan kamu <em>mulai</em> besok?</label>
+          <textarea id="reflection-tomorrow" rows="2"
+            placeholder="Niatkan satu langkah kecil…"
+            class="w-full text-sm bg-cream-50 rounded-xl p-3 border border-amber-100 resize-none focus:outline-none focus:ring-2 focus:ring-terra-300 placeholder-slate-300"></textarea>
+        </div>
+
+        <button id="save-reflection-btn"
+          class="w-full py-3 rounded-2xl bg-terra-600 text-white font-semibold text-sm hover:bg-terra-800 active:scale-[0.98] transition-all shadow-sm">
+          💾 Simpan Refleksi
+        </button>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════
+         VIEW 4 — STATISTICS
+    ════════════════════════════════════════ -->
+    <section id="view-stats" class="view mt-6">
+
+      <!-- Streak card -->
+      <div class="p-5 rounded-2xl bg-gradient-to-br from-terra-100 to-cream-200 border border-terra-200 mb-5 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-terra-600 uppercase tracking-wider mb-1">Streak Aktif</p>
+          <p class="font-display text-4xl font-semibold text-terra-800"><span id="stats-streak">0</span> <span class="text-2xl">🔥</span></p>
+          <p class="text-xs text-terra-600 mt-1">Terakhir aktif: <span id="stats-last-active">—</span></p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs font-medium text-blue-600 uppercase tracking-wider mb-1">Shields</p>
+          <p class="font-display text-3xl font-semibold text-blue-700"><span id="stats-shields">2</span> 🛡️</p>
+        </div>
+      </div>
+
+      <!-- Weekly starts chart (simple bar) -->
+      <div class="p-4 rounded-2xl bg-white/70 border border-amber-100 mb-5">
+        <p class="text-xs font-medium text-slate-500 mb-3">Jumlah "Mulai" per hari (7 hari terakhir)</p>
+        <div id="weekly-chart" class="flex items-end gap-2 h-24">
+          <!-- Populated by JS -->
+        </div>
+        <div id="weekly-labels" class="flex gap-2 mt-1">
+          <!-- Day labels -->
+        </div>
+      </div>
+
+      <!-- All-time stats -->
+      <div class="grid grid-cols-2 gap-3 mb-5">
+        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
+          <p class="text-xs text-slate-500 mb-1">Total "Mulai" (semua waktu)</p>
+          <p id="stats-total-starts" class="font-display text-3xl font-semibold text-terra-600">0</p>
+        </div>
+        <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
+          <p class="text-xs text-slate-500 mb-1">Total tugas selesai</p>
+          <p id="stats-total-completed" class="font-display text-3xl font-semibold text-moss-600">0</p>
+        </div>
+      </div>
+
+      <!-- Recent logs -->
+      <div class="p-4 rounded-2xl bg-white/70 border border-amber-100">
+        <p class="text-xs font-medium text-slate-500 mb-3">Log 7 Hari Terakhir</p>
+        <div id="recent-logs-list" class="flex flex-col gap-2">
+          <span class="text-xs text-slate-400 italic">Belum ada log</span>
+        </div>
+      </div>
+
+      <!-- Reset button -->
+      <button id="reset-all-btn" class="mt-6 w-full py-2.5 rounded-xl border border-red-200 text-red-400 text-sm hover:bg-red-50 transition-colors">
+        🗑 Reset Semua Data
+      </button>
+    </section>
+
+  </main>
+
+  <!-- ════════════════════════════════════════
+       BOTTOM NAV (mobile)
+  ════════════════════════════════════════ -->
+  <!-- already using top nav tabs; bottom padding covers mobile nav -->
+
+  <!-- ════════════════════════════════════════
+       TOAST NOTIFICATION
+  ════════════════════════════════════════ -->
+  <div id="toast"
+    class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-2 opacity-0 z-50
+           px-5 py-3 rounded-2xl bg-slate-800 text-white text-sm font-medium shadow-xl max-w-xs text-center">
+  </div>
+
+  <!-- ════════════════════════════════════════
+       CONFIRM MODAL
+  ════════════════════════════════════════ -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4">
+    <div class="bg-cream-50 rounded-2xl p-6 max-w-xs w-full shadow-2xl animate-pop">
+      <p id="confirm-text" class="font-display text-terra-800 text-center mb-4">Yakin?</p>
+      <div class="flex gap-3">
+        <button id="confirm-no"  class="flex-1 py-2.5 rounded-xl bg-cream-100 text-slate-700 text-sm font-medium hover:bg-cream-200 transition-colors">Batal</button>
+        <button id="confirm-yes" class="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors">Ya, lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       STREAK MODAL (detail)
+  ════════════════════════════════════════ -->
+  <div id="streak-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop px-4">
+    <div class="bg-cream-50 rounded-2xl p-6 max-w-xs w-full shadow-2xl animate-pop">
+      <h3 class="font-display text-xl text-terra-800 text-center mb-1">🔥 Streak & Shield</h3>
+      <p class="text-xs text-slate-500 text-center mb-4">Detail konsistensi harianmu</p>
+
+      <div class="flex justify-around mb-4">
+        <div class="text-center">
+          <p class="font-display text-4xl text-terra-600"><span id="modal-streak">0</span></p>
+          <p class="text-xs text-slate-500 mt-1">Hari berturut-turut</p>
+        </div>
+        <div class="text-center">
+          <p class="font-display text-4xl text-blue-600"><span id="modal-shields">2</span></p>
+          <p class="text-xs text-slate-500 mt-1">Shield tersisa</p>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500 text-center mb-4">
+        Shield melindungi streak-mu saat kamu melewatkan satu hari.
+        Streak bertambah setiap hari kamu menekan "Mulai 5 Menit" minimal sekali.
+      </p>
+      <button id="close-streak-modal" class="w-full py-2.5 rounded-xl bg-terra-600 text-white text-sm font-medium">Tutup</button>
+    </div>
+  </div>
+
+  <!-- App script -->
+  <script src="app.js"></script>
+</body>
+</html>

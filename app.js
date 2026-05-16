@@ -1,870 +1,855 @@
 /**
  * ╔══════════════════════════════════════════════════════════╗
- * ║           MULAI DULU — Anti-Procrastination App          ║
- * ║                      app.js v1.0                         ║
- * ╠══════════════════════════════════════════════════════════╣
- * ║  Data disimpan di LocalStorage dengan struktur yang      ║
- * ║  siap dimigrasikan ke Firebase/Supabase.                 ║
+ * ║        MULAI DULU — Dashboard app.js (Minimal UI)        ║
  * ╚══════════════════════════════════════════════════════════╝
- */
-
-// ──────────────────────────────────────────────────────────────
-// 1. SCHEMA & DEFAULT DATA
-//    Dokumentasi struktur data agar mudah dimigrasikan ke DB.
-// ──────────────────────────────────────────────────────────────
-
-/**
- * SCHEMA: users
- * Koleksi tunggal (single-document) karena ini aplikasi lokal.
- * Di Firebase: /users/{userId}
- * Di Supabase: tabel `users` dengan kolom di bawah.
  *
- * {
- *   id:             string,   // UUID v4 — foreign key ke semua entitas
- *   displayName:    string,   // Nama pengguna (opsional)
- *   createdAt:      string,   // ISO 8601 datetime
- *   streak:         number,   // Jumlah hari berturut-turut aktif
- *   lastActiveDate: string,   // "YYYY-MM-DD" — tanggal terakhir minimal 1 start
- *   streakShields:  number,   // Jumlah shield tersisa (default 2, max 3)
- *   totalStarts:    number,   // Total kumulatif semua kali "Mulai 5 Menit" ditekan
- *   totalCompleted: number,   // Total kumulatif tugas diselesaikan
- * }
+ * Schema  ▸  see schema comments at top of each DB section
+ * Storage ▸  LocalStorage (keyed by LS_KEYS)
+ * Ready for migration to Firebase / Supabase:
+ *   – all reads/writes go through DB.* functions
+ *   – IDs are UUID v4
+ *   – dates are ISO-8601 strings or "YYYY-MM-DD"
  */
 
-/**
- * SCHEMA: tasks
- * Di Firebase: /users/{userId}/tasks/{taskId}
- * Di Supabase: tabel `tasks` dengan kolom `user_id` sebagai FK.
- *
- * {
- *   id:           string,    // UUID v4
- *   userId:       string,    // FK → users.id
- *   title:        string,    // Judul tugas (max 200 karakter)
- *   description:  string,    // Deskripsi opsional
- *   status:       "pending" | "in_progress" | "completed",
- *   startedCount: number,    // Berapa kali tombol "Mulai 5 Menit" ditekan untuk tugas ini
- *   createdAt:    string,    // ISO 8601
- *   updatedAt:    string,    // ISO 8601
- *   completedAt:  string | null,  // ISO 8601, null jika belum selesai
- *   order:        number,    // Urutan tampil (untuk drag-reorder nanti)
- * }
- */
+'use strict';
 
-/**
- * SCHEMA: daily_logs
- * Di Firebase: /users/{userId}/daily_logs/{dateString}
- * Di Supabase: tabel `daily_logs` dengan PK komposit (user_id, date).
- *
- * {
- *   id:              string,  // UUID v4 (atau "{userId}_{date}")
- *   userId:          string,  // FK → users.id
- *   date:            string,  // "YYYY-MM-DD" — 1 dokumen per hari
- *   totalStarts:     number,  // Jumlah "Mulai 5 Menit" pada hari ini
- *   completedTasks:  number,  // Jumlah tugas diselesaikan pada hari ini
- *   shieldUsed:      boolean, // Apakah streak shield dipakai pada hari ini
- *   reflection: {
- *     mood:          number | null,  // 1–5 (emoji mood scale)
- *     wentWell:      string,         // Refleksi positif
- *     obstacle:      string,         // Hambatan / kesulitan
- *     tomorrow:      string,         // Niat untuk hari berikutnya
- *     savedAt:       string | null,  // ISO 8601, null jika belum disimpan
- *   },
- *   sessions: [                 // Array sesi "Mulai 5 Menit" pada hari ini
- *     {
- *       taskId:    string,      // FK → tasks.id
- *       taskTitle: string,      // Snapshot judul (denormalized, aman untuk history)
- *       startedAt: string,      // ISO 8601
- *       durationSeconds: number // Berapa detik timer berjalan sebelum berhenti
- *     }
- *   ]
- * }
- */
+// ─────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────
 
-// ──────────────────────────────────────────────────────────────
-// 2. CONSTANTS & HELPERS
-// ──────────────────────────────────────────────────────────────
-
-const LS_KEYS = {
-  USER:       'mulaidulu_user',
-  TASKS:      'mulaidulu_tasks',
-  DAILY_LOGS: 'mulaidulu_daily_logs',
+const LS = {
+  USER:  'md_user',
+  TASKS: 'md_tasks',
+  LOGS:  'md_logs',
 };
 
-const TIMER_DURATION = 5 * 60; // 5 menit dalam detik
-const MAX_SHIELDS    = 3;
+const TIMER_SEC     = 5 * 60;   // 5 minutes
+const MAX_TODAY     = 5;        // max pending tasks shown in Today View
+const MAX_SHIELDS   = 3;
+const XP_PER_START  = 10;
+const XP_PER_DONE   = 25;
+const XP_PER_LEVEL  = 100;
 
-/** Generate UUID v4 sederhana (cukup untuk LocalStorage) */
-function uuid() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+const MOTIVATIONS = [
+  'Tidak perlu selesai — cukup mulai.',
+  '5 menit sekarang > 1 jam nanti.',
+  'Gerakan kecil mengalahkan rencana besar.',
+  'Otak butuh bukti, bukan janji.',
+  'Progres, bukan kesempurnaan.',
+  'Satu langkah sudah cukup untuk hari ini.',
+];
+
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
+
+const uuid = () =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
-}
 
-/** Format Date ke "YYYY-MM-DD" */
-function toDateStr(date = new Date()) {
-  return date.toISOString().split('T')[0];
-}
+const toDateStr  = (d = new Date()) => d.toISOString().split('T')[0];
+const daysDiff   = (a, b) =>
+  Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
 
-/** Format tanggal ke lokal Indonesia */
-function formatDateID(dateStr) {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-/** Hitung selisih hari antara dua date string */
-function daysDiff(dateStr1, dateStr2) {
-  const d1 = new Date(dateStr1 + 'T00:00:00');
-  const d2 = new Date(dateStr2 + 'T00:00:00');
-  return Math.round((d2 - d1) / 86400000);
-}
-
-/** Tampilkan toast notifikasi */
-let toastTimer = null;
-function showToast(msg, duration = 2500) {
+let _toastTimer = null;
+function toast(msg, duration = 2400) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), duration);
 }
 
-/** Konfirmasi modal promise */
-function confirmDialog(text) {
-  return new Promise(resolve => {
-    const modal = document.getElementById('confirm-modal');
-    document.getElementById('confirm-text').textContent = text;
-    modal.classList.remove('hidden');
-    const yes = document.getElementById('confirm-yes');
-    const no  = document.getElementById('confirm-no');
-    const cleanup = (val) => {
-      modal.classList.add('hidden');
-      yes.replaceWith(yes.cloneNode(true));
-      no.replaceWith(no.cloneNode(true));
-      resolve(val);
-    };
-    document.getElementById('confirm-yes').onclick = () => cleanup(true);
-    document.getElementById('confirm-no').onclick  = () => cleanup(false);
-  });
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ──────────────────────────────────────────────────────────────
-// 3. DATA ACCESS LAYER (LocalStorage CRUD)
-//    Interface ini bisa diswap ke Firebase/Supabase nantinya.
-// ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// DATA ACCESS LAYER
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * SCHEMA · users
+ * {
+ *   id, displayName, createdAt,
+ *   streak, lastActiveDate,
+ *   streakShields,             // 0–3
+ *   totalStarts, totalDone,
+ *   xp, level
+ * }
+ */
+
+/**
+ * SCHEMA · tasks
+ * {
+ *   id, userId, title, category,   // category: kuliah|kerja|pribadi
+ *   status,                        // 'pending' | 'done'
+ *   startedCount,
+ *   createdAt, updatedAt, doneAt   // ISO-8601 or null
+ * }
+ */
+
+/**
+ * SCHEMA · daily_logs  (keyed by "YYYY-MM-DD")
+ * {
+ *   id, userId, date,
+ *   totalStarts, totalDone,
+ *   shieldUsed,
+ *   sessions: [{ taskId, taskTitle, startedAt, durationSec }],
+ *   reflection: { mood, wentWell, obstacle, tomorrow, savedAt }
+ * }
+ */
 
 const DB = {
-  /* ── USER ── */
-  getUser() {
-    const raw = localStorage.getItem(LS_KEYS.USER);
-    return raw ? JSON.parse(raw) : null;
-  },
-  saveUser(user) {
-    localStorage.setItem(LS_KEYS.USER, JSON.stringify(user));
-  },
+  /* USER */
+  user()          { const r = localStorage.getItem(LS.USER); return r ? JSON.parse(r) : null; },
+  saveUser(u)     { localStorage.setItem(LS.USER, JSON.stringify(u)); },
 
-  /* ── TASKS ── */
-  getTasks() {
-    const raw = localStorage.getItem(LS_KEYS.TASKS);
-    return raw ? JSON.parse(raw) : [];
-  },
-  saveTasks(tasks) {
-    localStorage.setItem(LS_KEYS.TASKS, JSON.stringify(tasks));
-  },
-  addTask(task) {
-    const tasks = this.getTasks();
-    tasks.unshift(task); // prepend — tugas baru di atas
-    this.saveTasks(tasks);
-  },
+  /* TASKS */
+  tasks()         { const r = localStorage.getItem(LS.TASKS); return r ? JSON.parse(r) : []; },
+  saveTasks(arr)  { localStorage.setItem(LS.TASKS, JSON.stringify(arr)); },
+  addTask(t)      { const a = this.tasks(); a.unshift(t); this.saveTasks(a); },
   updateTask(id, patch) {
-    const tasks = this.getTasks().map(t =>
-      t.id === id ? { ...t, ...patch, updatedAt: new Date().toISOString() } : t
-    );
-    this.saveTasks(tasks);
+    this.saveTasks(this.tasks().map(t =>
+      t.id === id ? { ...t, ...patch, updatedAt: new Date().toISOString() } : t));
   },
-  deleteTask(id) {
-    this.saveTasks(this.getTasks().filter(t => t.id !== id));
-  },
+  deleteTask(id)  { this.saveTasks(this.tasks().filter(t => t.id !== id)); },
 
-  /* ── DAILY LOGS ── */
-  getLogs() {
-    const raw = localStorage.getItem(LS_KEYS.DAILY_LOGS);
-    return raw ? JSON.parse(raw) : {};
-  },
-  getLog(dateStr) {
-    return this.getLogs()[dateStr] || null;
-  },
-  saveLog(dateStr, log) {
-    const logs = this.getLogs();
-    logs[dateStr] = log;
-    localStorage.setItem(LS_KEYS.DAILY_LOGS, JSON.stringify(logs));
-  },
-  getTodayLog() {
-    return this.getLog(toDateStr());
-  },
+  /* LOGS */
+  logs()          { const r = localStorage.getItem(LS.LOGS); return r ? JSON.parse(r) : {}; },
+  log(date)       { return this.logs()[date] || null; },
+  saveLog(date, l){ const all = this.logs(); all[date] = l; localStorage.setItem(LS.LOGS, JSON.stringify(all)); },
+  todayLog()      { return this.log(toDateStr()); },
 };
 
-// ──────────────────────────────────────────────────────────────
-// 4. INITIALIZATION
-// ──────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────
 
-function initData() {
-  /* Buat user default jika belum ada */
-  if (!DB.getUser()) {
-    const user = {
-      id:             uuid(),
-      displayName:    'Pengguna',
-      createdAt:      new Date().toISOString(),
-      streak:         0,
-      lastActiveDate: null,
-      streakShields:  2,
-      totalStarts:    0,
-      totalCompleted: 0,
-    };
-    DB.saveUser(user);
-    // Tampilkan welcome banner untuk pengguna baru
-    document.getElementById('welcome-banner').classList.remove('hidden');
+function init() {
+  if (!DB.user()) {
+    DB.saveUser({
+      id: uuid(), displayName: 'Pejuang', createdAt: new Date().toISOString(),
+      streak: 0, lastActiveDate: null, streakShields: 2,
+      totalStarts: 0, totalDone: 0, xp: 0, level: 1,
+    });
+    document.getElementById('welcome-banner') &&
+      document.getElementById('welcome-banner').classList.remove('hidden');
   }
-
-  /* Pastikan log hari ini ada */
   ensureTodayLog();
+  checkStreak();
 
-  /* Periksa & update streak berdasarkan tanggal */
-  checkAndUpdateStreak();
+  // Staggered reveal
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.reveal-item').forEach(el => el.classList.add('go'));
+  });
 }
 
 function ensureTodayLog() {
   const today = toDateStr();
-  if (!DB.getLog(today)) {
-    const user = DB.getUser();
-    const log = {
-      id:             `${user.id}_${today}`,
-      userId:         user.id,
-      date:           today,
-      totalStarts:    0,
-      completedTasks: 0,
-      shieldUsed:     false,
-      reflection: {
-        mood:      null,
-        wentWell:  '',
-        obstacle:  '',
-        tomorrow:  '',
-        savedAt:   null,
-      },
+  if (!DB.log(today)) {
+    const u = DB.user();
+    DB.saveLog(today, {
+      id: `${u.id}_${today}`, userId: u.id, date: today,
+      totalStarts: 0, totalDone: 0, shieldUsed: false,
       sessions: [],
-    };
-    DB.saveLog(today, log);
-  }
-}
-
-/**
- * Logika streak:
- * - Jika lastActiveDate === kemarin → streak lanjut (tidak berubah sampai ada start baru)
- * - Jika lastActiveDate === 2+ hari lalu → periksa shield
- * - Jika ada shield tersisa → pakai shield, streak tetap, shieldUsed = true di log kemarin
- * - Jika tidak ada shield → streak reset ke 0
- */
-function checkAndUpdateStreak() {
-  const user  = DB.getUser();
-  const today = toDateStr();
-  if (!user.lastActiveDate) return; // belum pernah aktif
-
-  const diff = daysDiff(user.lastActiveDate, today);
-  if (diff <= 1) return; // hari ini atau kemarin — normal
-
-  // Melewatkan ≥ 1 hari
-  if (diff === 2 && user.streakShields > 0) {
-    // Satu hari dilewati → pakai shield
-    const missedDate = toDateStr(new Date(Date.now() - 86400000));
-    const missedLog  = DB.getLog(missedDate) || {
-      id: `${user.id}_${missedDate}`, userId: user.id, date: missedDate,
-      totalStarts: 0, completedTasks: 0, shieldUsed: true,
       reflection: { mood: null, wentWell: '', obstacle: '', tomorrow: '', savedAt: null },
-      sessions: [],
-    };
-    missedLog.shieldUsed = true;
-    DB.saveLog(missedDate, missedLog);
-
-    user.streakShields--;
-    DB.saveUser(user);
-    showToast('🛡️ Shield digunakan untuk melindungi streak-mu!', 3500);
-  } else if (diff > 2 || (diff === 2 && user.streakShields === 0)) {
-    // Streak putus
-    user.streak = 0;
-    DB.saveUser(user);
+    });
   }
 }
 
-// ──────────────────────────────────────────────────────────────
-// 5. TASK LOGIC
-// ──────────────────────────────────────────────────────────────
+function checkStreak() {
+  const u = DB.user();
+  if (!u.lastActiveDate) return;
+  const today = toDateStr();
+  const diff  = daysDiff(u.lastActiveDate, today);
+  if (diff <= 1) return;
 
-function createTask(title) {
-  if (!title.trim()) return null;
-  const user = DB.getUser();
+  if (diff === 2 && u.streakShields > 0) {
+    u.streakShields--;
+    const missed = toDateStr(new Date(Date.now() - 86400000));
+    const ml = DB.log(missed) || {
+      id: `${u.id}_${missed}`, userId: u.id, date: missed,
+      totalStarts: 0, totalDone: 0, shieldUsed: true,
+      sessions: [], reflection: { mood: null, wentWell: '', obstacle: '', tomorrow: '', savedAt: null },
+    };
+    ml.shieldUsed = true;
+    DB.saveLog(missed, ml);
+    DB.saveUser(u);
+    toast('🛡️ Shield melindungi streak-mu!', 3000);
+  } else if (diff > 1) {
+    u.streak = 0;
+    DB.saveUser(u);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// TASK LOGIC
+// ─────────────────────────────────────────────────────────────
+
+let selectedTaskId = null;
+
+function makeTask(title, category) {
+  const u = DB.user();
   return {
-    id:           uuid(),
-    userId:       user.id,
-    title:        title.trim(),
-    description:  '',
-    status:       'pending',
-    startedCount: 0,
-    createdAt:    new Date().toISOString(),
-    updatedAt:    new Date().toISOString(),
-    completedAt:  null,
-    order:        Date.now(),
+    id: uuid(), userId: u.id, title: title.trim(), category,
+    status: 'pending', startedCount: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    doneAt: null,
   };
 }
 
-function recordStart(taskId) {
-  const today = toDateStr();
-  const task  = DB.getTasks().find(t => t.id === taskId);
+function addTask(title, category) {
+  if (!title.trim()) { toast('⚠ Judul tugas tidak boleh kosong'); return; }
+  DB.addTask(makeTask(title, category));
+  renderAll();
+  toast('✓ Tugas ditambahkan');
+}
+
+function markDone(id) {
+  DB.updateTask(id, { status: 'done', doneAt: new Date().toISOString() });
+  const u  = DB.user();
+  const lg = DB.todayLog();
+  lg.totalDone++;
+  DB.saveLog(toDateStr(), lg);
+  u.totalDone++;
+  u.xp = (u.xp || 0) + XP_PER_DONE;
+  checkLevelUp(u);
+  DB.saveUser(u);
+  if (selectedTaskId === id) clearFocus();
+  renderAll();
+  toast('🌿 Quest selesai! +25 XP');
+}
+
+function deleteTask(id) {
+  if (selectedTaskId === id) clearFocus();
+  DB.deleteTask(id);
+  renderAll();
+}
+
+function selectTask(id) {
+  if (timerRunning) return;
+  selectedTaskId = id;
+  renderAll();
+}
+
+function clearFocus() {
+  selectedTaskId = null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// TIMER LOGIC
+// ─────────────────────────────────────────────────────────────
+
+let timerRunning  = false;
+let timerSec      = TIMER_SEC;
+let timerInterval = null;
+let sessionStart  = null;
+
+function startTimer() {
+  if (!selectedTaskId) return;
+  timerRunning = true;
+  timerSec     = TIMER_SEC;
+  sessionStart = new Date().toISOString();
+
+  // Record start
+  const task = DB.tasks().find(t => t.id === selectedTaskId);
   if (!task) return;
+  DB.updateTask(selectedTaskId, { startedCount: task.startedCount + 1 });
 
-  // Tambah startedCount ke task
-  DB.updateTask(taskId, {
-    startedCount: task.startedCount + 1,
-    status: task.status === 'pending' ? 'in_progress' : task.status,
-  });
-
-  // Catat sesi di daily log
-  const log = DB.getTodayLog();
-  log.totalStarts++;
-  log.sessions.push({
-    taskId:          taskId,
-    taskTitle:       task.title,
-    startedAt:       new Date().toISOString(),
-    durationSeconds: 0, // akan diperbarui saat timer berhenti
-  });
-  DB.saveLog(today, log);
-
-  // Update user stats + streak
-  const user = DB.getUser();
-  user.totalStarts++;
-  const todayStr = toDateStr();
-  if (user.lastActiveDate !== todayStr) {
-    // Hari baru yang aktif → tambah streak
-    const diff = user.lastActiveDate ? daysDiff(user.lastActiveDate, todayStr) : 0;
-    if (diff <= 1) {
-      user.streak++;
-    }
-    // (Jika diff > 1, streak sudah di-handle checkAndUpdateStreak())
-    user.lastActiveDate = todayStr;
-  }
-  DB.saveUser(user);
-}
-
-function completeTask(taskId) {
   const today = toDateStr();
-  DB.updateTask(taskId, {
-    status:      'completed',
-    completedAt: new Date().toISOString(),
-  });
+  const lg    = DB.todayLog();
+  lg.totalStarts++;
+  lg.sessions.push({ taskId: selectedTaskId, taskTitle: task.title, startedAt: sessionStart, durationSec: 0 });
+  DB.saveLog(today, lg);
 
-  const log = DB.getTodayLog();
-  log.completedTasks++;
-  DB.saveLog(today, log);
+  const u = DB.user();
+  u.totalStarts++;
+  u.xp = (u.xp || 0) + XP_PER_START;
+  if (u.lastActiveDate !== today) {
+    const diff = u.lastActiveDate ? daysDiff(u.lastActiveDate, today) : 0;
+    if (diff <= 1) u.streak = (u.streak || 0) + 1;
+    u.lastActiveDate = today;
+  }
+  checkLevelUp(u);
+  DB.saveUser(u);
 
-  const user = DB.getUser();
-  user.totalCompleted++;
-  DB.saveUser(user);
+  updateTimerUI();
+  renderAll();
+
+  timerInterval = setInterval(() => {
+    timerSec--;
+    // update session duration
+    const lg2 = DB.todayLog();
+    if (lg2.sessions.length) {
+      lg2.sessions[lg2.sessions.length - 1].durationSec = TIMER_SEC - timerSec;
+      DB.saveLog(today, lg2);
+    }
+    updateTimerUI();
+    if (timerSec <= 0) stopTimer(true);
+  }, 1000);
 }
 
-// ──────────────────────────────────────────────────────────────
-// 6. RENDER FUNCTIONS
-// ──────────────────────────────────────────────────────────────
+function stopTimer(finished = false) {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerSec     = TIMER_SEC;
+  updateTimerUI();
+  renderAll();
+  if (finished) toast('🎉 5 menit selesai! Kamu sudah mulai!', 3500);
+  else          toast('✋ Sesi dihentikan — setiap detik tetap berarti');
+}
 
-let currentFilter = 'all';
+function updateTimerUI() {
+  const m = String(Math.floor(timerSec / 60)).padStart(2,'0');
+  const s = String(timerSec % 60).padStart(2,'0');
+
+  const disp   = document.getElementById('timer-display');
+  const status = document.getElementById('timer-status');
+  const btn    = document.getElementById('start-btn');
+  const icon   = document.getElementById('start-icon');
+  const label  = document.getElementById('start-label');
+
+  disp.textContent = `${m}:${s}`;
+  disp.classList.toggle('running', timerRunning);
+
+  if (timerRunning) {
+    status.textContent = 'Fokus…  jangan berhenti dulu';
+    btn.classList.add('running');
+    icon.innerHTML = '<rect x="6" y="6" width="5" height="16" rx="1" fill="white"/><rect x="17" y="6" width="5" height="16" rx="1" fill="white"/>';
+    label.innerHTML = 'Berhenti';
+    // hide pulse rings while running
+    ['ring1','ring2','ring3'].forEach(id => {
+      document.getElementById(id).style.animationPlayState = 'paused';
+      document.getElementById(id).style.opacity = '0';
+    });
+  } else {
+    status.textContent = '5 menit · cukup untuk memulai';
+    btn.classList.remove('running');
+    icon.innerHTML = '<path d="M10 7l12 7-12 7V7z" fill="white"/>';
+    label.innerHTML = 'Mulai 5 Menit<br/>Sekarang';
+    ['ring1','ring2','ring3'].forEach(id => {
+      document.getElementById(id).style.animationPlayState = '';
+      document.getElementById(id).style.opacity = '';
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// LEVEL UP
+// ─────────────────────────────────────────────────────────────
+
+function checkLevelUp(u) {
+  const newLevel = Math.floor((u.xp || 0) / XP_PER_LEVEL) + 1;
+  if (newLevel > (u.level || 1)) {
+    u.level = newLevel;
+    // brief visual indicator via toast (full modal overkill for minimal UI)
+    setTimeout(() => toast(`⭐ Level ${newLevel} tercapai! Luar biasa!`, 3000), 400);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────────────
 
 function renderAll() {
   renderHeader();
   renderTaskList();
-  renderFocusView();
-  renderLogView();
-  renderStatsView();
+  renderFocus();
+  renderProgress();
 }
 
+/* ── Header ── */
 function renderHeader() {
-  const user = DB.getUser();
-  document.getElementById('streak-count').textContent  = user.streak;
-  document.getElementById('shield-count').textContent  = user.streakShields;
-  document.getElementById('modal-streak').textContent  = user.streak;
-  document.getElementById('modal-shields').textContent = user.streakShields;
-  document.getElementById('stats-streak').textContent  = user.streak;
-  document.getElementById('stats-shields').textContent = user.streakShields;
+  const u = DB.user();
 
-  const lastActive = user.lastActiveDate
-    ? formatDateID(user.lastActiveDate)
-    : 'Belum pernah';
-  document.getElementById('stats-last-active').textContent = lastActive;
-}
+  // Greeting
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Selamat pagi' : h < 17 ? 'Selamat siang' : 'Selamat malam';
+  const el = document.getElementById('greeting-text');
+  if (el) el.textContent = greet;
 
-function renderTaskList() {
-  const allTasks = DB.getTasks();
-  const filtered = currentFilter === 'all'
-    ? allTasks
-    : allTasks.filter(t => t.status === currentFilter);
-
-  const container = document.getElementById('task-list');
-  const emptyEl   = document.getElementById('empty-tasks');
-  container.innerHTML = '';
-
-  if (filtered.length === 0) {
-    emptyEl.classList.remove('hidden');
-  } else {
-    emptyEl.classList.add('hidden');
+  // Date
+  const dateEl = document.getElementById('date-text');
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleDateString('id-ID', {
+      weekday: 'long', day: 'numeric', month: 'long',
+    });
   }
 
-  // Progress bar
-  const todayLog = DB.getTodayLog();
-  const total    = allTasks.length;
-  const pct      = total > 0 ? Math.round((todayLog.totalStarts / Math.max(total, 1)) * 100) : 0;
-  document.getElementById('daily-progress-bar').style.width  = Math.min(pct, 100) + '%';
-  document.getElementById('daily-progress-text').textContent =
-    `${todayLog.totalStarts} mulai · ${todayLog.completedTasks} selesai`;
-
-  filtered.forEach(task => {
-    const card = buildTaskCard(task);
-    container.appendChild(card);
-  });
+  // Nav streak
+  const ns = document.getElementById('nav-streak-num');
+  if (ns) ns.textContent = u ? u.streak : 0;
 }
 
-function buildTaskCard(task) {
-  const statusMeta = {
-    pending:     { label: 'Tertunda',       color: 'bg-amber-100 text-amber-700' },
-    in_progress: { label: 'Sedang Jalan',   color: 'bg-blue-100 text-blue-700' },
-    completed:   { label: 'Selesai',        color: 'bg-green-100 text-green-700' },
-  };
-  const meta = statusMeta[task.status];
+/* ── Task list (Today View) ── */
+function renderTaskList() {
+  const allTasks  = DB.tasks();
+  const pending   = allTasks.filter(t => t.status === 'pending');
+  const shown     = pending.slice(0, MAX_TODAY);
+  const warehouse = pending.slice(MAX_TODAY).length + allTasks.filter(t => t.status === 'done').length;
 
-  const div = document.createElement('div');
-  div.className = `task-card p-4 rounded-2xl bg-white/80 border border-amber-100 shadow-sm
-    ${task.status === 'completed' ? 'opacity-60' : ''}`;
-  div.dataset.taskId = task.id;
+  // Pending count
+  const pc = document.getElementById('pending-count');
+  if (pc) pc.textContent = pending.length ? `(${pending.length})` : '';
 
-  div.innerHTML = `
-    <div class="flex items-start justify-between gap-3">
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-medium text-slate-800 leading-snug ${task.status === 'completed' ? 'line-through' : ''}">${escapeHtml(task.title)}</p>
-        <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-          <span class="text-xs px-2 py-0.5 rounded-full font-medium ${meta.color}">${meta.label}</span>
-          ${task.startedCount > 0
-            ? `<span class="text-xs text-slate-400">🚀 ${task.startedCount}× dimulai</span>`
-            : ''}
-        </div>
+  // Warehouse count
+  const wc = document.getElementById('warehouse-count');
+  if (wc) wc.textContent = allTasks.length - shown.filter(t=>t.status==='pending').length +
+    allTasks.filter(t=>t.status==='done').length;
+
+  // Clear-done button
+  const cd = document.getElementById('clear-done-btn');
+  if (cd) cd.classList.toggle('hidden', allTasks.every(t => t.status !== 'done'));
+
+  const list  = document.getElementById('task-list');
+  const empty = document.getElementById('task-empty');
+  if (!list) return;
+
+  list.innerHTML = '';
+
+  if (shown.length === 0) {
+    empty && empty.classList.remove('hidden');
+  } else {
+    empty && empty.classList.add('hidden');
+    shown.forEach((task, i) => {
+      const row = buildTaskRow(task, i);
+      list.appendChild(row);
+    });
+  }
+}
+
+function buildTaskRow(task, idx) {
+  const isSelected = task.id === selectedTaskId;
+  const chipClass  = { kuliah:'chip-kuliah', kerja:'chip-kerja', pribadi:'chip-pribadi' }[task.category] || 'chip-pribadi';
+  const chipLabel  = { kuliah:'Kuliah', kerja:'Kerja', pribadi:'Pribadi' }[task.category] || task.category;
+  const emoji      = { kuliah:'🎓', kerja:'💼', pribadi:'🌱' }[task.category] || '';
+
+  const row = document.createElement('div');
+  row.className = `task-row px-2 rounded-lg ${isSelected ? 'selected bg-white' : ''}`;
+  row.style.animationDelay = `${idx * 0.04}s`;
+  row.dataset.id = task.id;
+
+  row.innerHTML = `
+    <div class="task-dot mt-1 flex-shrink-0 ${isSelected ? 'bg-forest' : ''}"></div>
+    <div class="flex-1 min-w-0 py-0.5">
+      <p class="task-title truncate">${escHtml(task.title)}</p>
+      <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+        <span class="chip ${chipClass}">${emoji} ${chipLabel}</span>
+        ${task.startedCount > 0 ? `<span class="font-mono text-[10px] text-ink4">▶ ${task.startedCount}×</span>` : ''}
       </div>
-      <button class="delete-task-btn text-slate-300 hover:text-red-400 text-lg transition-colors flex-shrink-0 mt-0.5"
-        data-id="${task.id}" title="Hapus tugas">×</button>
     </div>
-
-    ${task.status !== 'completed' ? `
-    <div class="flex gap-2 mt-3">
-      <button class="start-5min-btn flex-1 py-2 rounded-xl bg-terra-600 text-white text-xs font-semibold
-        hover:bg-terra-800 active:scale-[0.97] transition-all" data-id="${task.id}" data-title="${escapeHtml(task.title)}">
-        🚀 Mulai 5 Menit
+    <div class="flex items-center gap-1 flex-shrink-0 self-center">
+      <!-- Done check -->
+      <button class="action-icon w-6 h-6 flex items-center justify-center rounded hover:bg-forest-pale text-ink4 hover:text-forest transition-colors done-btn" title="Tandai selesai" data-id="${task.id}">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5L11 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <button class="complete-task-btn py-2 px-3 rounded-xl bg-green-50 text-green-700 text-xs font-medium
-        hover:bg-green-100 active:scale-[0.97] transition-all" data-id="${task.id}">
-        ✓ Selesai
+      <!-- Delete -->
+      <button class="action-icon w-6 h-6 flex items-center justify-center rounded hover:bg-rose-pale text-ink4 hover:text-rose transition-colors del-btn" title="Hapus" data-id="${task.id}">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1l9 9M10 1L1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       </button>
     </div>
-    ` : `
-    <p class="text-xs text-green-600 mt-2">✓ Diselesaikan ${task.completedAt ? formatDateID(task.completedAt.split('T')[0]) : ''}</p>
-    `}
   `;
 
-  return div;
+  // Select on click (not on button)
+  row.addEventListener('click', e => {
+    if (e.target.closest('.done-btn') || e.target.closest('.del-btn')) return;
+    selectTask(task.id);
+  });
+  row.querySelector('.done-btn').addEventListener('click', e => { e.stopPropagation(); markDone(task.id); });
+  row.querySelector('.del-btn').addEventListener('click',  e => { e.stopPropagation(); deleteTask(task.id); });
+
+  return row;
 }
 
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+/* ── Focus zone ── */
+function renderFocus() {
+  const task     = DB.tasks().find(t => t.id === selectedTaskId);
+  const nameEl   = document.getElementById('focus-task-name');
+  const metaEl   = document.getElementById('focus-task-meta');
+  const chipEl   = document.getElementById('focus-task-chip');
+  const startBtn = document.getElementById('start-btn');
 
-function renderFocusView() {
-  // Populate task selector
-  const select = document.getElementById('focus-task-select');
-  const prevVal = select.value;
-  select.innerHTML = '<option value="">— Pilih tugas —</option>';
-  DB.getTasks()
-    .filter(t => t.status !== 'completed')
-    .forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t.id;
-      opt.textContent = t.title;
-      if (t.id === prevVal) opt.selected = true;
-      select.appendChild(opt);
-    });
-
-  // Session history chips
-  const log = DB.getTodayLog();
-  const hist = document.getElementById('session-history');
-  if (log.sessions.length === 0) {
-    hist.innerHTML = '<span class="text-xs text-slate-400 italic">Belum ada sesi</span>';
+  if (!task) {
+    if (nameEl) {
+      nameEl.className = 'focus-placeholder';
+      nameEl.textContent = 'Pilih tugas di kiri untuk mulai';
+    }
+    metaEl && metaEl.classList.add('hidden');
+    if (startBtn) startBtn.disabled = true;
   } else {
-    hist.innerHTML = log.sessions.map(s => `
-      <span class="text-xs px-2.5 py-1 rounded-full bg-terra-100 text-terra-700 font-medium">
-        🚀 ${escapeHtml(s.taskTitle)}
-      </span>
-    `).join('');
-  }
-}
-
-function renderLogView() {
-  const today = toDateStr();
-  document.getElementById('log-date').textContent = formatDateID(today);
-
-  const log = DB.getTodayLog();
-  document.getElementById('log-total-starts').textContent = log.totalStarts;
-  document.getElementById('log-completed').textContent    = log.completedTasks;
-  document.getElementById('log-shield-used').textContent  = log.shieldUsed ? '🛡️ Ya' : '—';
-
-  // Restore reflection fields
-  document.getElementById('reflection-good').value     = log.reflection.wentWell  || '';
-  document.getElementById('reflection-obstacle').value = log.reflection.obstacle   || '';
-  document.getElementById('reflection-tomorrow').value = log.reflection.tomorrow   || '';
-
-  // Mood selector highlight
-  document.querySelectorAll('.mood-btn').forEach(btn => {
-    const active = parseInt(btn.dataset.mood) === log.reflection.mood;
-    btn.classList.toggle('ring-2',       active);
-    btn.classList.toggle('ring-terra-400', active);
-    btn.classList.toggle('bg-terra-100',   active);
-    btn.classList.toggle('scale-110',      active);
-  });
-}
-
-function renderStatsView() {
-  const user = DB.getUser();
-  document.getElementById('stats-total-starts').textContent    = user.totalStarts;
-  document.getElementById('stats-total-completed').textContent = user.totalCompleted;
-
-  renderWeeklyChart();
-  renderRecentLogs();
-}
-
-function renderWeeklyChart() {
-  const chart  = document.getElementById('weekly-chart');
-  const labels = document.getElementById('weekly-labels');
-  const days   = 7;
-  const data   = [];
-
-  for (let i = days - 1; i >= 0; i--) {
-    const d   = new Date(Date.now() - i * 86400000);
-    const str = toDateStr(d);
-    const log = DB.getLog(str);
-    data.push({ dateStr: str, starts: log ? log.totalStarts : 0 });
+    if (nameEl) {
+      nameEl.className = 'font-serif text-xl text-ink leading-snug text-center max-w-sm';
+      nameEl.textContent = task.title;
+    }
+    if (chipEl) {
+      const chipClass = { kuliah:'chip-kuliah', kerja:'chip-kerja', pribadi:'chip-pribadi' }[task.category];
+      const emoji     = { kuliah:'🎓', kerja:'💼', pribadi:'🌱' }[task.category] || '';
+      const label     = { kuliah:'Kuliah', kerja:'Kerja', pribadi:'Pribadi' }[task.category] || task.category;
+      chipEl.className  = `chip ${chipClass}`;
+      chipEl.textContent = `${emoji} ${label}`;
+    }
+    metaEl && metaEl.classList.remove('hidden');
+    if (startBtn) startBtn.disabled = false;
   }
 
-  const maxVal = Math.max(...data.map(d => d.starts), 1);
-  chart.innerHTML  = '';
-  labels.innerHTML = '';
+  // Start/stop button state
+  if (startBtn) {
+    const isRunning = timerRunning;
+    startBtn.onclick = isRunning ? () => stopTimer(false) : startTimer;
+  }
 
-  data.forEach(d => {
-    const pct     = Math.round((d.starts / maxVal) * 100);
-    const isToday = d.dateStr === toDateStr();
-    const bar = document.createElement('div');
-    bar.className = 'flex-1 flex flex-col items-center justify-end gap-1';
-    bar.innerHTML = `
-      <span class="text-xs font-semibold ${d.starts > 0 ? 'text-terra-600' : 'text-slate-300'}">${d.starts || ''}</span>
-      <div class="w-full rounded-t-lg ${isToday ? 'bg-terra-600' : 'bg-terra-200'} transition-all"
-        style="height: ${Math.max(pct, 4)}%"></div>
-    `;
-    chart.appendChild(bar);
-
-    const lbl = document.createElement('div');
-    lbl.className = `flex-1 text-center text-xs ${isToday ? 'font-semibold text-terra-600' : 'text-slate-400'}`;
-    lbl.textContent = new Date(d.dateStr + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'narrow' });
-    labels.appendChild(lbl);
-  });
+  // Session chips
+  renderSessionChips();
 }
 
-function renderRecentLogs() {
-  const logs = DB.getLogs();
-  const list = document.getElementById('recent-logs-list');
-  const sorted = Object.values(logs)
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 7);
+function renderSessionChips() {
+  const lg   = DB.todayLog();
+  const wrap = document.getElementById('session-chips');
+  if (!wrap) return;
 
-  if (sorted.length === 0) {
-    list.innerHTML = '<span class="text-xs text-slate-400 italic">Belum ada log</span>';
+  if (!lg || lg.sessions.length === 0) {
+    wrap.innerHTML = '<span class="font-mono text-xs text-ink4">Belum ada sesi dimulai</span>';
     return;
   }
 
-  list.innerHTML = sorted.map(log => `
-    <div class="flex items-center justify-between py-2 border-b border-amber-50 last:border-0">
-      <div class="flex items-center gap-2">
-        ${log.shieldUsed ? '<span title="Shield digunakan">🛡️</span>' : '<span class="w-4"></span>'}
-        <span class="text-sm text-slate-700">${formatDateID(log.date)}</span>
-        ${log.date === toDateStr() ? '<span class="text-xs bg-terra-100 text-terra-700 rounded-full px-2">hari ini</span>' : ''}
-      </div>
-      <div class="flex gap-3 text-xs text-slate-500">
-        <span>🚀 ${log.totalStarts}</span>
-        <span>✓ ${log.completedTasks}</span>
-        ${log.reflection.mood ? `<span>${['','😩','😕','😐','🙂','😄'][log.reflection.mood]}</span>` : ''}
-      </div>
-    </div>
+  wrap.innerHTML = lg.sessions.map(s => `
+    <span class="inline-flex items-center gap-1 bg-forest-mist border border-forest-pale text-forest font-mono text-[10px] rounded-full px-2.5 py-1" title="${escHtml(s.taskTitle)}">
+      ▶ ${escHtml(s.taskTitle.length > 18 ? s.taskTitle.slice(0,18)+'…' : s.taskTitle)}
+    </span>
   `).join('');
 }
 
-// ──────────────────────────────────────────────────────────────
-// 7. TIMER LOGIC
-// ──────────────────────────────────────────────────────────────
+/* ── Progress column ── */
+function renderProgress() {
+  const u  = DB.user();
+  const lg = DB.todayLog();
 
-let timerInterval   = null;
-let timerSecondsLeft = TIMER_DURATION;
-let timerTaskId     = null;
-let timerSessionIdx = null; // index sesi dalam log hari ini
+  // Streak
+  const sd = document.getElementById('streak-display');
+  if (sd) sd.textContent = u ? u.streak : 0;
 
-const MOTIVATIONS = [
-  'Kamu tidak perlu selesai. Cukup mulai.',
-  'Lima menit sekarang lebih baik dari satu jam nanti.',
-  'Mulai adalah satu-satunya cara melawan rasa malas.',
-  'Gerakan kecil mengalahkan rencana besar.',
-  'Otak butuh bukti, bukan janji. Buktikan dengan mulai.',
-  'Progres, bukan kesempurnaan.',
-];
+  // Shields
+  const sc = document.getElementById('shield-count');
+  const shields = u ? u.streakShields : 2;
+  if (sc) sc.textContent = shields;
+  [1,2,3].forEach(n => {
+    const el = document.getElementById(`shield-${n}`);
+    if (el) el.classList.toggle('used', n > shields);
+  });
 
-function startTimer() {
-  const select = document.getElementById('focus-task-select');
-  const taskId = select.value;
+  // Today summary
+  const ts = document.getElementById('today-starts');
+  const td = document.getElementById('today-done');
+  if (ts) ts.textContent = lg ? lg.totalStarts : 0;
+  if (td) td.textContent = lg ? lg.totalDone   : 0;
 
-  if (!taskId) {
-    showToast('⚠️ Pilih tugas terlebih dahulu!');
+  // Progress ring
+  const allTasks = DB.tasks();
+  const total    = allTasks.length;
+  const done     = allTasks.filter(t => t.status === 'done').length;
+  const pct      = total > 0 ? Math.round((done / total) * 100) : 0;
+  const ring     = document.getElementById('progress-ring');
+  const pctTxt   = document.getElementById('progress-pct');
+  const circum   = 94.25;
+  if (ring)   ring.style.strokeDashoffset = circum - (circum * pct / 100);
+  if (pctTxt) pctTxt.textContent = `${pct}%`;
+
+  // Contribution calendar
+  renderCalendar();
+}
+
+/* ── GitHub-style contribution calendar ── */
+function renderCalendar() {
+  const grid   = document.getElementById('contrib-grid');
+  const months = document.getElementById('contrib-months');
+  if (!grid) return;
+
+  const logs    = DB.logs();
+  const today   = toDateStr();
+  const WEEKS   = 10;
+  const DAYS    = WEEKS * 7;
+
+  // Find the Sunday before DAYS ago
+  const endDate   = new Date();
+  // align to end of current week (Saturday)
+  const startDate = new Date(endDate);
+  startDate.setDate(endDate.getDate() - DAYS + 1);
+
+  // Build week columns
+  // Group days by week (col = week index, row = day-of-week 0=Sun)
+  const cols = [];
+  let weekDays = [];
+  const ptr = new Date(startDate);
+
+  // Pad first week if doesn't start on Sunday
+  const firstDow = ptr.getDay(); // 0=Sun
+  for (let i = 0; i < firstDow; i++) weekDays.push(null);
+
+  while (ptr <= endDate) {
+    weekDays.push(toDateStr(new Date(ptr)));
+    if (weekDays.length === 7) { cols.push(weekDays); weekDays = []; }
+    ptr.setDate(ptr.getDate() + 1);
+  }
+  if (weekDays.length) {
+    while (weekDays.length < 7) weekDays.push(null);
+    cols.push(weekDays);
+  }
+
+  // Build month label map (week index → month abbr)
+  const monthLabels = {};
+  cols.forEach((week, wi) => {
+    week.forEach(d => {
+      if (!d) return;
+      const dt = new Date(d + 'T00:00:00');
+      if (dt.getDate() <= 7) {
+        const abbr = dt.toLocaleDateString('id-ID', { month: 'short' });
+        if (!monthLabels[wi]) monthLabels[wi] = abbr;
+      }
+    });
+  });
+
+  // Row labels (Mon, Wed, Fri on rows 1,3,5)
+  const rowLabels = ['M','','R','','J','','M']; // Sen,Sel,Rab,Kam,Jum,Sab,Min in index order (Sun=0→last visual)
+  const displayOrder = [1,2,3,4,5,6,0]; // Mon first visually
+
+  // Render
+  grid.innerHTML = '';
+
+  // Day-of-week label column
+  const labelCol = document.createElement('div');
+  labelCol.className = 'flex flex-col gap-1 mr-0.5';
+  displayOrder.forEach(dow => {
+    const lb = document.createElement('div');
+    lb.className = 'font-mono text-[9px] text-ink4 h-[11px] flex items-center justify-end pr-1';
+    lb.style.width = '14px';
+    lb.textContent = ['M','','R','','J','','M'][displayOrder.indexOf(dow)] || '';
+    labelCol.appendChild(lb);
+  });
+  grid.appendChild(labelCol);
+
+  // Week columns
+  cols.forEach(week => {
+    const col = document.createElement('div');
+    col.className = 'flex flex-col gap-1';
+
+    displayOrder.forEach(dow => {
+      const dateStr = week[dow];
+      const cell = document.createElement('div');
+      cell.className = 'contrib-cell';
+
+      if (!dateStr) {
+        cell.style.opacity = '0';
+      } else {
+        const lg = logs[dateStr];
+        const starts = lg ? lg.totalStarts : 0;
+        const isToday = dateStr === today;
+
+        if (isToday && starts === 0) {
+          cell.classList.add('today-empty');
+        } else if (starts >= 3) {
+          cell.classList.add('active');
+        } else if (starts === 2) {
+          cell.classList.add('active-lt');
+        } else if (starts === 1) {
+          cell.classList.add('active-pl');
+        }
+
+        // Tooltip
+        const label = isToday ? 'Hari ini' : new Date(dateStr + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        cell.title = `${label}: ${starts} start${starts !== 1 ? 's' : ''}`;
+      }
+
+      col.appendChild(cell);
+    });
+
+    grid.appendChild(col);
+  });
+
+  // Month labels
+  if (months) {
+    months.innerHTML = '';
+    // spacer for label col
+    const sp = document.createElement('div');
+    sp.style.width = '18px';
+    months.appendChild(sp);
+
+    cols.forEach((_, wi) => {
+      const lbl = document.createElement('div');
+      lbl.className = 'font-mono text-[9px] text-ink4 flex-1 text-center truncate';
+      lbl.style.minWidth = '11px';
+      lbl.textContent = monthLabels[wi] || '';
+      months.appendChild(lbl);
+    });
+  }
+}
+
+/* ── Warehouse modal ── */
+let warehouseFilter = 'all';
+
+function renderWarehouse() {
+  const all   = DB.tasks();
+  const shown = warehouseFilter === 'all'    ? all
+              : warehouseFilter === 'pending' ? all.filter(t => t.status === 'pending')
+              : all.filter(t => t.status === 'done');
+
+  const list = document.getElementById('warehouse-list');
+  if (!list) return;
+  list.innerHTML = '';
+
+  if (shown.length === 0) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="6" y="4" width="20" height="24" rx="3" stroke="var(--ink5)" stroke-width="1.5"/><path d="M11 12h10M11 17h6" stroke="var(--ink5)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span class="font-sans text-sm text-ink4">Tidak ada tugas</span>
+      </div>`;
     return;
   }
 
-  timerTaskId = taskId;
-  timerSecondsLeft = TIMER_DURATION;
+  shown.forEach(task => {
+    const chipClass = { kuliah:'chip-kuliah', kerja:'chip-kerja', pribadi:'chip-pribadi' }[task.category];
+    const emoji     = { kuliah:'🎓', kerja:'💼', pribadi:'🌱' }[task.category] || '';
+    const label     = { kuliah:'Kuliah', kerja:'Kerja', pribadi:'Pribadi' }[task.category] || task.category;
+    const isDone    = task.status === 'done';
+    const doneDate  = isDone && task.doneAt ? new Date(task.doneAt).toLocaleDateString('id-ID',{day:'numeric',month:'short'}) : '';
 
-  // Record start di data layer
-  recordStart(taskId);
-  timerSessionIdx = DB.getTodayLog().sessions.length - 1;
-
-  // Update UI
-  document.getElementById('start-timer-btn').classList.add('hidden');
-  document.getElementById('stop-timer-btn').classList.remove('hidden');
-  document.getElementById('pulse-rings').classList.remove('hidden');
-  document.getElementById('focus-motivation').textContent =
-    MOTIVATIONS[Math.floor(Math.random() * MOTIVATIONS.length)];
-
-  updateTimerDisplay();
-  renderAll(); // Refresh task cards & header
-
-  timerInterval = setInterval(() => {
-    timerSecondsLeft--;
-    updateTimerDisplay();
-
-    // Update durasi sesi di log
-    const log = DB.getTodayLog();
-    if (log.sessions[timerSessionIdx]) {
-      log.sessions[timerSessionIdx].durationSeconds = TIMER_DURATION - timerSecondsLeft;
-      DB.saveLog(toDateStr(), log);
-    }
-
-    if (timerSecondsLeft <= 0) {
-      stopTimer(true);
-    }
-  }, 1000);
-}
-
-function stopTimer(completed = false) {
-  clearInterval(timerInterval);
-  timerInterval = null;
-
-  document.getElementById('start-timer-btn').classList.remove('hidden');
-  document.getElementById('stop-timer-btn').classList.add('hidden');
-  document.getElementById('pulse-rings').classList.add('hidden');
-
-  // Reset ring
-  timerSecondsLeft = TIMER_DURATION;
-  updateTimerDisplay();
-
-  if (completed) {
-    showToast('🎉 5 menit selesai! Luar biasa — kamu sudah mulai!', 3500);
-    document.getElementById('focus-motivation').textContent =
-      'Kamu sudah membuktikan bahwa kamu bisa mulai. Terus lakukan!';
-  } else {
-    showToast('✋ Sesi dihentikan. Setiap detik tetap berarti!', 2500);
-    document.getElementById('focus-motivation').textContent =
-      'Tidak apa-apa berhenti. Yang penting kamu sudah memulai.';
-  }
-
-  renderAll();
-}
-
-function updateTimerDisplay() {
-  const m   = Math.floor(timerSecondsLeft / 60);
-  const s   = timerSecondsLeft % 60;
-  document.getElementById('timer-display').textContent =
-    `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-
-  // Update ring
-  const pct    = timerSecondsLeft / TIMER_DURATION;
-  const offset = 283 * (1 - pct);
-  document.getElementById('timer-ring').style.strokeDashoffset = offset;
-}
-
-// ──────────────────────────────────────────────────────────────
-// 8. EVENT LISTENERS
-// ──────────────────────────────────────────────────────────────
-
-function setupEventListeners() {
-
-  /* ── Navigation tabs ── */
-  document.querySelectorAll('.nav-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.view).classList.add('active');
-      renderAll(); // refresh aktif view
-    });
+    const row = document.createElement('div');
+    row.className = `flex items-center gap-3 py-3 border-b border-ink6 last:border-0 group`;
+    row.innerHTML = `
+      <div class="flex-1 min-w-0">
+        <p class="text-sm ${isDone ? 'text-ink4 line-through' : 'text-ink2'} truncate">${escHtml(task.title)}</p>
+        <div class="flex items-center gap-2 mt-1 flex-wrap">
+          <span class="chip ${chipClass}">${emoji} ${label}</span>
+          ${task.startedCount > 0 ? `<span class="font-mono text-[10px] text-ink4">▶ ${task.startedCount}×</span>` : ''}
+          ${isDone ? `<span class="font-mono text-[10px] text-ink4">✓ ${doneDate}</span>` : ''}
+        </div>
+      </div>
+      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        ${!isDone ? `
+          <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-forest-mist text-ink4 hover:text-forest transition-colors wdone-btn" data-id="${task.id}" title="Selesai">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 7l3.5 3.5L11 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        ` : ''}
+        <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-rose-pale text-ink4 hover:text-rose transition-colors wdel-btn" data-id="${task.id}" title="Hapus">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1l9 9M10 1L1 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    `;
+    list.appendChild(row);
   });
 
-  /* ── Add task ── */
-  document.getElementById('add-task-btn').addEventListener('click', handleAddTask);
-  document.getElementById('new-task-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') handleAddTask();
+  list.querySelectorAll('.wdone-btn').forEach(b => b.addEventListener('click', () => { markDone(b.dataset.id); renderWarehouse(); }));
+  list.querySelectorAll('.wdel-btn').forEach(b  => b.addEventListener('click', () => { deleteTask(b.dataset.id); renderWarehouse(); }));
+}
+
+// ─────────────────────────────────────────────────────────────
+// EVENT LISTENERS
+// ─────────────────────────────────────────────────────────────
+
+function setupEvents() {
+
+  /* Add task */
+  document.getElementById('add-btn').addEventListener('click', () => {
+    const inp = document.getElementById('task-input');
+    const cat = document.getElementById('category-select');
+    addTask(inp.value, cat.value);
+    inp.value = '';
+  });
+  document.getElementById('task-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('add-btn').click();
   });
 
-  function handleAddTask() {
-    const input = document.getElementById('new-task-input');
-    const task  = createTask(input.value);
-    if (!task) { showToast('⚠️ Judul tugas tidak boleh kosong!'); return; }
-    DB.addTask(task);
-    input.value = '';
+  /* Clear done */
+  document.getElementById('clear-done-btn').addEventListener('click', () => {
+    DB.saveTasks(DB.tasks().filter(t => t.status !== 'done'));
     renderAll();
-    showToast('✅ Tugas ditambahkan!');
-  }
+    toast('🗑 Tugas selesai dihapus');
+  });
 
-  /* ── Filter pills ── */
-  document.querySelectorAll('.task-filter').forEach(btn => {
+  /* Open warehouse */
+  document.getElementById('open-warehouse-btn').addEventListener('click', () => {
+    document.getElementById('warehouse-modal').classList.remove('hidden');
+    warehouseFilter = 'all';
+    highlightWarehouseTab('all');
+    renderWarehouse();
+  });
+
+  /* Close warehouse */
+  document.getElementById('close-warehouse-btn').addEventListener('click', closeWarehouse);
+  document.getElementById('warehouse-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeWarehouse();
+  });
+
+  /* Warehouse filter tabs */
+  document.querySelectorAll('.wfilter-tab').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.task-filter').forEach(b => {
-        b.classList.remove('bg-terra-600', 'text-white', 'active-filter');
-        b.classList.add('bg-cream-100', 'text-slate-600');
-      });
-      btn.classList.add('bg-terra-600', 'text-white', 'active-filter');
-      btn.classList.remove('bg-cream-100', 'text-slate-600');
-      currentFilter = btn.dataset.filter;
-      renderTaskList();
+      warehouseFilter = btn.dataset.wfilter;
+      highlightWarehouseTab(warehouseFilter);
+      renderWarehouse();
     });
   });
 
-  /* ── Task list delegated events ── */
-  document.getElementById('task-list').addEventListener('click', async e => {
-    // Start 5 min (from task card)
-    const startBtn = e.target.closest('.start-5min-btn');
-    if (startBtn) {
-      const taskId = startBtn.dataset.id;
-      // Switch to focus view and pre-select task
-      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      document.querySelector('[data-view="view-focus"]').classList.add('active');
-      document.getElementById('view-focus').classList.add('active');
-      const select = document.getElementById('focus-task-select');
-      renderFocusView();
-      select.value = taskId;
-      startTimer();
-      return;
-    }
-
-    // Complete task
-    const completeBtn = e.target.closest('.complete-task-btn');
-    if (completeBtn) {
-      completeTask(completeBtn.dataset.id);
-      renderAll();
-      showToast('🌿 Tugas diselesaikan! Hebat!');
-      return;
-    }
-
-    // Delete task
-    const deleteBtn = e.target.closest('.delete-task-btn');
-    if (deleteBtn) {
-      const ok = await confirmDialog('Hapus tugas ini? Tindakan tidak dapat dibatalkan.');
-      if (ok) {
-        DB.deleteTask(deleteBtn.dataset.id);
-        renderAll();
-        showToast('🗑 Tugas dihapus.');
-      }
-    }
+  /* Clear all done from warehouse */
+  document.getElementById('clear-all-done-btn').addEventListener('click', () => {
+    DB.saveTasks(DB.tasks().filter(t => t.status !== 'done'));
+    renderAll();
+    renderWarehouse();
+    toast('🗑 Semua tugas selesai dihapus');
   });
 
-  /* ── Timer controls ── */
-  document.getElementById('start-timer-btn').addEventListener('click', startTimer);
-  document.getElementById('stop-timer-btn').addEventListener('click', () => stopTimer(false));
-
-  /* ── Mood selector ── */
-  document.querySelectorAll('.mood-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const today = toDateStr();
-      const log   = DB.getTodayLog();
-      log.reflection.mood = parseInt(btn.dataset.mood);
-      DB.saveLog(today, log);
-      renderLogView();
-    });
+  /* Streak badge → tooltip/modal (simple toast for now) */
+  document.getElementById('nav-streak-btn').addEventListener('click', () => {
+    const u = DB.user();
+    toast(`🔥 Streak ${u.streak} hari · 🛡️ ${u.streakShields} shield tersisa`);
   });
 
-  /* ── Save reflection ── */
-  document.getElementById('save-reflection-btn').addEventListener('click', () => {
-    const today = toDateStr();
-    const log   = DB.getTodayLog();
-    log.reflection.wentWell  = document.getElementById('reflection-good').value.trim();
-    log.reflection.obstacle  = document.getElementById('reflection-obstacle').value.trim();
-    log.reflection.tomorrow  = document.getElementById('reflection-tomorrow').value.trim();
-    log.reflection.savedAt   = new Date().toISOString();
-    DB.saveLog(today, log);
-    showToast('💾 Refleksi tersimpan!');
-    renderStatsView();
-  });
-
-  /* ── Streak badge → modal ── */
-  document.getElementById('streak-badge').addEventListener('click', () => {
-    renderHeader();
-    document.getElementById('streak-modal').classList.remove('hidden');
-  });
-  document.getElementById('shield-badge').addEventListener('click', () => {
-    renderHeader();
-    document.getElementById('streak-modal').classList.remove('hidden');
-  });
-  document.getElementById('close-streak-modal').addEventListener('click', () => {
-    document.getElementById('streak-modal').classList.add('hidden');
-  });
-
-  /* ── Welcome banner close ── */
-  document.getElementById('close-welcome').addEventListener('click', () => {
-    document.getElementById('welcome-banner').classList.add('hidden');
-  });
-
-  /* ── Reset all data ── */
-  document.getElementById('reset-all-btn').addEventListener('click', async () => {
-    const ok = await confirmDialog('Reset semua data? Streak, tugas, dan log akan dihapus permanen.');
-    if (ok) {
-      Object.values(LS_KEYS).forEach(k => localStorage.removeItem(k));
-      location.reload();
-    }
-  });
-
-  /* ── Close modals on backdrop click ── */
-  document.getElementById('streak-modal').addEventListener('click', e => {
-    if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+  /* Keyboard: Escape closes warehouse */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeWarehouse();
   });
 }
 
-// ──────────────────────────────────────────────────────────────
-// 9. BOOTSTRAP
-// ──────────────────────────────────────────────────────────────
+function closeWarehouse() {
+  document.getElementById('warehouse-modal').classList.add('hidden');
+}
+
+function highlightWarehouseTab(filter) {
+  document.querySelectorAll('.wfilter-tab').forEach(btn => {
+    const active = btn.dataset.wfilter === filter;
+    btn.classList.toggle('border-forest', active);
+    btn.classList.toggle('text-forest',   active);
+    btn.classList.toggle('border-transparent', !active);
+    btn.classList.toggle('text-ink4', !active);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// BOOTSTRAP
+// ─────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
-  initData();
-  setupEventListeners();
+  init();
+  setupEvents();
   renderAll();
 
+  // Seed demo tasks if first run (user just created → no tasks yet)
+  if (DB.tasks().length === 0) {
+    const demos = [
+      { title: 'Review catatan kuliah semester ini', category: 'kuliah' },
+      { title: 'Kirim email follow-up ke klien', category: 'kerja' },
+      { title: 'Baca buku 10 halaman', category: 'pribadi' },
+    ];
+    demos.forEach(d => DB.addTask(makeTask(d.title, d.category)));
+    renderAll();
+  }
+
   console.info(
-    '%c🔥 Mulai Dulu App%c — Data di LocalStorage\n' +
-    'Keys: mulaidulu_user, mulaidulu_tasks, mulaidulu_daily_logs\n' +
-    'Schema siap migrasi ke Firebase/Supabase.',
-    'color:#c05328;font-weight:bold;font-size:14px',
-    'color:#666'
+    '%cMulai Dulu%c — LocalStorage keys: md_user · md_tasks · md_logs',
+    'color:#2D6A4F;font-weight:bold', 'color:#999'
   );
 });
